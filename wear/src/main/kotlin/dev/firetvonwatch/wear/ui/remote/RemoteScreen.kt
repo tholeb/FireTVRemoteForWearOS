@@ -1,6 +1,7 @@
 package dev.firetvonwatch.wear.ui.remote
 
 import android.view.ViewConfiguration
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +45,7 @@ import dev.firetvonwatch.wear.ui.common.ConnectionRing
 import dev.firetvonwatch.wear.ui.common.KeyButton
 import dev.firetvonwatch.wear.ui.common.StatusPanel
 import dev.firetvonwatch.wear.ui.common.errorText
+import kotlinx.coroutines.launch
 
 private const val PAGE_DPAD = 0
 private const val PAGE_MEDIA = 1
@@ -65,13 +68,20 @@ fun RemoteScreen(
     }
     val focus = remember { FocusRequester() }
     val rotary = rememberRotaryHandler(
-        mode = { if (pagerState.currentPage == PAGE_MEDIA) RotaryMode.VOLUME else ui.settings.rotaryMode },
+        mode = { ui.settings.rotaryModeFor(mediaPage = pagerState.currentPage == PAGE_MEDIA) },
         enabled = { pagerState.currentPage != PAGE_APPS },
         onKeys = { keys ->
             haptics.tick()
             vm.pressAll(keys)
         },
     )
+
+    // Back (edge swipe or the watch's Back button) goes to the previous page and, unless the user
+    // allowed it in Settings, never closes the remote from the first page. Home always exits.
+    val scope = rememberCoroutineScope()
+    BackHandler(enabled = pagerState.currentPage > 0 || !ui.settings.swipeBackCloses) {
+        if (pagerState.currentPage > 0) scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
+    }
 
     // The Apps list takes the rotary focus while it's showing; take it back elsewhere.
     LaunchedEffect(pagerState.currentPage) {
@@ -89,7 +99,7 @@ fun RemoteScreen(
             HorizontalPager(state = pagerState, modifier = Modifier.testTag("pager")) { page ->
                 when (page) {
                     PAGE_DPAD -> DpadPage(ui, press, onTouchpad, onRetry = vm::retry, onDevices = onDevices)
-                    PAGE_MEDIA -> MediaPage(press, onKeyboard, onSettings)
+                    PAGE_MEDIA -> MediaPage(press, onKeyboard, onSettings, volumeEnabled = ui.settings.volumeControlEnabled)
                     else -> AppsPage(vm, ui, isCurrent = pagerState.currentPage == PAGE_APPS, haptics = haptics)
                 }
             }
@@ -204,31 +214,33 @@ private fun CornerCell(size: Dp, alignment: Alignment, content: @Composable () -
 
 /**
  *   [⏪] [ ⏯ ] [⏩]
- *   [−]  [🔇]  [+]
+ *   [−]  [🔇]  [+]     (hidden when volume control is off; the transport keys get bigger)
  *     [⌨]  [⚙]
  */
 @Composable
-private fun MediaPage(press: (RemoteKey) -> Unit, onKeyboard: () -> Unit, onSettings: () -> Unit) {
+private fun MediaPage(press: (RemoteKey) -> Unit, onKeyboard: () -> Unit, onSettings: () -> Unit, volumeEnabled: Boolean) {
+    val side = if (volumeEnabled) 44.dp else 52.dp
+    val center = if (volumeEnabled) 58.dp else 68.dp
     ScreenScaffold(timeText = {}) { _ ->
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    KeyButton(R.drawable.ic_rewind, stringResource(R.string.key_rewind), { press(RemoteKey.REWIND) }, size = 44.dp)
+                    KeyButton(R.drawable.ic_rewind, stringResource(R.string.key_rewind), { press(RemoteKey.REWIND) }, size = side)
                     KeyButton(
                         R.drawable.ic_play_pause,
                         stringResource(R.string.key_play_pause),
                         { press(RemoteKey.PLAY_PAUSE) },
-                        size = 58.dp,
+                        size = center,
                         primary = true,
                     )
-                    KeyButton(R.drawable.ic_fast_forward, stringResource(R.string.key_fast_forward), { press(RemoteKey.FAST_FORWARD) }, size = 44.dp)
+                    KeyButton(R.drawable.ic_fast_forward, stringResource(R.string.key_fast_forward), { press(RemoteKey.FAST_FORWARD) }, size = side)
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (volumeEnabled) Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     KeyButton(R.drawable.ic_volume_down, stringResource(R.string.key_volume_down), { press(RemoteKey.VOLUME_DOWN) }, size = 48.dp)
                     KeyButton(R.drawable.ic_mute, stringResource(R.string.key_mute), { press(RemoteKey.MUTE) }, size = 44.dp)
                     KeyButton(R.drawable.ic_volume_up, stringResource(R.string.key_volume_up), { press(RemoteKey.VOLUME_UP) }, size = 48.dp)
                 }
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(if (volumeEnabled) 2.dp else 10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     KeyButton(R.drawable.ic_keyboard, stringResource(R.string.open_keyboard), onKeyboard, size = 40.dp)
                     KeyButton(R.drawable.ic_settings, stringResource(R.string.open_settings), onSettings, size = 40.dp)

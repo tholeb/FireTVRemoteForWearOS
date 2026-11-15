@@ -61,7 +61,6 @@
     <string name="start">Commencer</string>
 
     <!-- Pages -->
-    <string name="volume_cec_hint">Le volume fonctionne si la TV ou la barre de son est contrôlée en HDMI-CEC.</string>
     <string name="apps_title">Applis</string>
     <string name="apps_favorites">Favoris</string>
     <string name="apps_all">Toutes les applis</string>
@@ -89,8 +88,6 @@
     <string name="settings_rotary_volume">La lunette règle le volume</string>
     <string name="settings_haptics">Retour haptique</string>
     <string name="settings_touchpad">Démarrer sur le pavé tactile</string>
-    <string name="settings_idle">Déconnecter après</string>
-    <string name="settings_idle_value">%1$d s d\'inactivité</string>
     <string name="settings_sleep">Mettre la TV en veille</string>
     <string name="settings_wake">Réveiller la TV</string>
     <string name="settings_latency">Dernière commande : %1$d ms</string>
@@ -104,4 +101,19 @@
     <string name="active">Active</string>
     <string name="command_failed">Échec : %1$s</string>
     <string name="no_device_configured">Ajoutez d\'abord une TV</string>
+
+    <!-- Setting explanations -->
+    <string name="settings_device_desc">Touchez pour changer de TV ou en ajouter une.</string>
+    <string name="settings_volume_control">Boutons de volume</string>
+    <string name="settings_volume_control_desc">Affiche les touches volume et sourdine. Désactivez si votre TV ou barre de son se règle uniquement avec sa propre télécommande infrarouge (pas de HDMI-CEC).</string>
+    <string name="settings_rotary_volume_desc">Activé : la lunette règle le volume. Désactivé : elle monte et descend. Toujours le volume sur la page média.</string>
+    <string name="settings_haptics_desc">Vibre à chaque appui et à chaque cran de la lunette.</string>
+    <string name="settings_touchpad_desc">Ouvre le pavé tactile au lieu des boutons au démarrage de l\'appli.</string>
+    <string name="settings_swipe_back">Le geste retour peut fermer l\'appli</string>
+    <string name="settings_swipe_back_desc">Désactivé : le retour revient seulement à la page précédente et ne quitte jamais la télécommande. Utilisez le bouton Accueil de la montre pour quitter.</string>
+    <string name="settings_idle_label">Déconnecter après %1$d s</string>
+    <string name="settings_idle_desc">Économise la batterie : la connexion se ferme après ce délai d\'inactivité et se rouvre au prochain appui. Touchez pour changer.</string>
+    <string name="settings_sleep_desc">Met la Fire TV en veille.</string>
+    <string name="settings_wake_desc">Réveille la Fire TV si elle est encore joignable sur le réseau.</string>
+    <string name="settings_reset_key_desc">Crée une nouvelle identité pour la montre. Chaque TV demandera de nouveau de l\'autoriser.</string>
 </resources>

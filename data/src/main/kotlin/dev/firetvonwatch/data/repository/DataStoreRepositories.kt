@@ -32,6 +32,8 @@ private object Keys {
     val idleTimeout = intPreferencesKey("idle_timeout_s")
     val startInTouchpad = booleanPreferencesKey("start_touchpad")
     val favorites = stringPreferencesKey("favorite_apps")
+    val volumeControl = booleanPreferencesKey("volume_control")
+    val swipeBackCloses = booleanPreferencesKey("swipe_back_closes")
 }
 
 class DataStoreDeviceRepository(private val store: DataStore<Preferences>) : DeviceRepository {
@@ -89,6 +91,8 @@ class DataStoreSettingsRepository(private val store: DataStore<Preferences>) : S
             prefs[Keys.idleTimeout] = next.idleTimeoutSeconds
             prefs[Keys.startInTouchpad] = next.startInTouchpad
             prefs[Keys.favorites] = next.favoriteApps.joinToString(",")
+            prefs[Keys.volumeControl] = next.volumeControlEnabled
+            prefs[Keys.swipeBackCloses] = next.swipeBackCloses
         }
     }
 
@@ -100,6 +104,8 @@ class DataStoreSettingsRepository(private val store: DataStore<Preferences>) : S
             idleTimeoutSeconds = this[Keys.idleTimeout] ?: defaults.idleTimeoutSeconds,
             startInTouchpad = this[Keys.startInTouchpad] ?: defaults.startInTouchpad,
             favoriteApps = this[Keys.favorites]?.split(',')?.filter { it.isNotBlank() } ?: defaults.favoriteApps,
+            volumeControlEnabled = this[Keys.volumeControl] ?: defaults.volumeControlEnabled,
+            swipeBackCloses = this[Keys.swipeBackCloses] ?: defaults.swipeBackCloses,
         )
     }
 }

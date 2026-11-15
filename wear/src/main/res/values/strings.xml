@@ -66,7 +66,6 @@
     <string name="start">Start</string>
 
     <!-- Pages -->
-    <string name="volume_cec_hint">Volume works when the TV/soundbar is controlled over HDMI-CEC.</string>
     <string name="apps_title">Apps</string>
     <string name="apps_favorites">Favorites</string>
     <string name="apps_all">All apps</string>
@@ -94,8 +93,6 @@
     <string name="settings_rotary_volume">Bezel controls volume</string>
     <string name="settings_haptics">Haptic feedback</string>
     <string name="settings_touchpad">Start in touchpad</string>
-    <string name="settings_idle">Disconnect after</string>
-    <string name="settings_idle_value">%1$d s idle</string>
     <string name="settings_sleep">Put TV to sleep</string>
     <string name="settings_wake">Wake TV</string>
     <string name="settings_latency">Last command: %1$d ms</string>
@@ -109,4 +106,19 @@
     <string name="active">Active</string>
     <string name="command_failed">Failed: %1$s</string>
     <string name="no_device_configured">Add a TV first</string>
+
+    <!-- Setting explanations -->
+    <string name="settings_device_desc">Tap to switch TV or add one.</string>
+    <string name="settings_volume_control">Volume buttons</string>
+    <string name="settings_volume_control_desc">Show volume and mute keys. Turn off if your TV or soundbar is only controlled by its own IR remote (no HDMI-CEC).</string>
+    <string name="settings_rotary_volume_desc">On: the bezel changes the volume. Off: it moves up and down. Always volume on the media page.</string>
+    <string name="settings_haptics_desc">Vibrate on each key press and bezel step.</string>
+    <string name="settings_touchpad_desc">Open the swipe touchpad instead of the buttons when the app starts.</string>
+    <string name="settings_swipe_back">Swipe back can close the app</string>
+    <string name="settings_swipe_back_desc">Off: back only goes to the previous page and never leaves the remote. Use the watch\'s Home button to exit.</string>
+    <string name="settings_idle_label">Disconnect after %1$d s</string>
+    <string name="settings_idle_desc">Saves battery: the connection closes after this idle time and reopens on the next press. Tap to change.</string>
+    <string name="settings_sleep_desc">Puts the Fire TV in standby.</string>
+    <string name="settings_wake_desc">Wakes the Fire TV if it\'s still reachable on the network.</string>
+    <string name="settings_reset_key_desc">Creates a new identity for the watch. Every TV will ask to authorize it again.</string>
 </resources>

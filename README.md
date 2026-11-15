@@ -4,13 +4,28 @@ A standalone Wear OS app (built for the Samsung Galaxy Watch 9 on Wear OS 7) tha
 Amazon **Fire OS** Fire TV over the local network using **ADB over TCP**. It doesn't need a
 phone app, a cloud service or any telemetry.
 
+<p align="center">
+  <img src="docs/screenshots/remote.png" width="180" alt="D-pad remote with green connected ring">
+  <img src="docs/screenshots/media.png" width="180" alt="Media keys: rewind, play/pause, fast-forward, volume, mute">
+  <img src="docs/screenshots/apps.png" width="180" alt="Apps page with YouTube pinned as a favorite">
+</p>
+<p align="center">
+  <img src="docs/screenshots/touchpad.png" width="180" alt="Touchpad: swipe to move, tap for OK, hold for Back">
+  <img src="docs/screenshots/keyboard.png" width="180" alt="Text input screen">
+  <img src="docs/screenshots/settings.png" width="180" alt="Settings with an explanation under each option">
+  <img src="docs/screenshots/media-novolume.png" width="180" alt="Media page with volume buttons turned off">
+</p>
+<p align="center"><sub>Screenshots from the Wear OS 7 emulator controlling an Android TV 11 emulator (the Fire OS 8 base).</sub></p>
+
 | Feature | Notes |
 |---|---|
 | D-pad, OK, Back, Home, Menu | Page 1. Shortcut keys sit in the grid corners |
-| Play/Pause, Rewind, Fast-forward, Volume ±, Mute | Page 2. Volume only works over HDMI-CEC (see limitations) |
+| Play/Pause, Rewind, Fast-forward, Volume ±, Mute | Page 2. Volume only works over HDMI-CEC (see limitations). If your TV's sound is IR-only, turn off **Volume buttons** in Settings: the volume keys disappear and the bezel never changes the volume |
+| Back gesture | Back (edge swipe or the watch's Back button) goes to the previous page and never closes the remote; leave with the Home button. **Swipe back can close the app** in Settings restores the usual behaviour |
 | App launcher | Page 3. User-installed apps plus popular preinstalled streaming apps (Netflix, Prime Video, YouTube…); other system apps are hidden. Real icons and names (in the TV's language), read from the TV and cached on the watch. Long-press to pin a favourite |
 | Languages | English and French. Follows the watch language, or set it per app in *Settings → Apps → Fire TV Remote → Language* (Wear OS 4+) |
-| Bezel / crown | Moves up/down, or controls volume (toggle in Settings). Always volume on page 2 |
+| Bezel / crown | Moves up/down, or controls volume (toggle in Settings). Always volume on page 2, unless volume control is off |
+| Settings | Every setting has a short explanation under its name |
 | Touchpad mode | Swipe = direction, tap = OK, hold = Back. Open it from the bottom-right corner key |
 | Text input | Watch keyboard / voice → focused text field on the TV (ASCII only) |
 | Tile | Back, Play/Pause, Home sent straight from the tile; plus an "open remote" button |
@@ -70,35 +85,12 @@ adb connect WATCH_IP:CONNECT_PORT
 ```
 
 ```bash
-adb install -r wear/build/outputs/apk/debug/wear-debug.apk
+adb install -r FireTVRemote-wear-<version>.apk
 ```
 
 **WSL2 note:** WSL's default NAT network can't reach the watch. Either turn on mirrored
 networking (`networkingMode=mirrored` in `%UserProfile%\.wslconfig`) or run Windows'
 `adb.exe` (platform-tools for Windows) on the APK.
-
-## Releases (GitHub Actions)
-
-`.github/workflows/release.yml` runs on every **published GitHub release** (or by hand from
-the Actions tab). It runs the tests and lint, builds the minified release APK with
-`versionName` = the tag (a leading `v` is dropped) and `versionCode` = the run number, and
-attaches `FireTVRemote-wear-<tag>.apk` plus `SHA256SUMS.txt` to the release.
-
-Signing: add these repository secrets to sign with your own key:
-
-| Secret | Value |
-|---|---|
-| `RELEASE_KEYSTORE_BASE64` | `base64 -w0 release.jks` |
-| `RELEASE_KEYSTORE_PASSWORD` | keystore password |
-| `RELEASE_KEY_ALIAS` | key alias |
-| `RELEASE_KEY_PASSWORD` | key password |
-
-Without them, the CI build is signed with the runner's throwaway debug key. Android then
-refuses to install it over a locally built copy (signature mismatch), so uninstall first, or
-set up the secrets once and always use CI builds.
-
-Locally you can use the same variables, with `RELEASE_KEYSTORE_PATH` pointing to the `.jks`
-file instead of the base64 secret.
 
 ## 4. First run
 
@@ -108,6 +100,16 @@ file instead of the base64 secret.
 3. Accept the prompt on the TV (see §1.5). The watch shows the key fingerprint so you can
    compare it with the one the TV displays.
 4. Use the remote: swipe left for media keys, then again for apps.
+
+<p align="center">
+  <img src="docs/screenshots/discover.png" width="180" alt="Discovery list showing the TV">
+  <img src="docs/screenshots/pairing.png" width="180" alt="Watch asking to accept the prompt on the TV, with the key fingerprint">
+  <img src="docs/screenshots/pairing-fr.png" width="180" alt="Same pairing screen in French">
+</p>
+<p align="center">
+  <img src="docs/screenshots/tv-prompt.png" width="480" alt="Fire TV prompt 'Allow USB debugging?' showing the same fingerprint">
+</p>
+<p align="center"><sub>The fingerprint on the watch must match the one on the TV. Tick "Always allow", then Allow.</sub></p>
 
 ## Architecture
 
@@ -167,9 +169,9 @@ Build: AGP 9.5.1, Kotlin 2.4.21, Gradle 9.9.1, compile/target SDK 37, min SDK 34
 
 ## Tests
 
-`./gradlew test` runs **72 tests**:
+`./gradlew test` runs **80 tests**:
 
-- **domain (45):**
+- **domain (50):**
   - Command building: key batching, text escaping including `%s`, quotes and shell
     metacharacters, package validation.
   - Probe parsing.
@@ -179,17 +181,21 @@ Build: AGP 9.5.1, Kotlin 2.4.21, Gradle 9.9.1, compile/target SDK 37, min SDK 34
   - Discovery merging and codecs.
   - Injector: pushed and used, not re-pushed when the hash matches, failed start → fallback,
     hung injector → dropped and the key resent, stopped on disconnect, safe start command.
-- **data (10):**
+- **data (11):**
   - ADB public-key encoding is **byte-identical to dadb's AOSP-format output**.
   - Key store persistence, encryption and regeneration.
   - Refused vs unreachable mapping using a real closed socket.
   - Subnet candidates.
   - Legacy (pre-Android 7) shell: exit-code marker parsing, pty echo filtering.
-- **wear (12):**
+  - App label/icon disk cache.
+- **wear (19):**
   - Rotary step accumulation, gesture classification, tile actions.
   - Robolectric Compose tests of the real screens against the fake Fire TV: OK sends
     SELECT; labelled keys; swipe to the media page; refused error → guidance → retry;
-    touchpad swipe and tap.
+    touchpad swipe and tap; the whole UI in French; the connection-state node doesn't
+    cover the buttons (TalkBack regression); back goes to the previous page and never closes
+    the remote unless allowed; back leaves the touchpad and Settings; the media page
+    without volume keys.
 
 ### Emulator end-to-end run (2026-11-15)
 
@@ -243,6 +249,8 @@ These can't be checked without hardware:
 | The TV refused the connection | "Allow" wasn't chosen. Retry and allow. If you ticked "Always allow" earlier, *Developer options → Revoke USB debugging authorizations* on the TV resets it |
 | Failed: Only plain ASCII text… | `input text` can't type accents or emoji |
 | Discovery finds nothing | Use **Enter IP address**. mDNS is often blocked on mesh / enterprise Wi-Fi |
+| Volume / mute keys do nothing | Your TV or soundbar isn't controlled over HDMI-CEC (common on older TVs with IR remotes). Turn off *Settings → Volume buttons* |
+| The app closes when swiping right | Turn off *Settings → Swipe back can close the app* (off by default) |
 
 ## Fire OS compatibility
 

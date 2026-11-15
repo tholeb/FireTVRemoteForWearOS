@@ -1,5 +1,6 @@
 package dev.firetvonwatch.wear.ui.remote
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -27,6 +28,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
 import dev.firetvonwatch.domain.model.RemoteKey
 import dev.firetvonwatch.wear.R
@@ -54,64 +56,70 @@ fun TouchpadScreen(vm: RemoteViewModel, ui: RemoteUiState, onClose: () -> Unit) 
         vm.pressAll(keys)
     }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+    // The nav host's own back handling is off on this screen (its swipe-to-dismiss would steal
+    // the touchpad's swipes), so back must close the touchpad here, not the whole app.
+    BackHandler(onBack = onClose)
     val description = stringResource(R.string.touchpad_hint)
     val okLabel = stringResource(R.string.key_select)
 
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .onRotaryScrollEvent { rotary(it.verticalScrollPixels) }
-            .focusRequester(focus)
-            .focusable()
-            .testTag("touchpad")
-            .semantics {
-                contentDescription = description
-                onClick(label = okLabel) { onKey.value(RemoteKey.SELECT); true }
-            }
-            .pointerInput(Unit) {
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    down.consume()
-                    var last = down
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        event.changes.forEach { it.consume() }
-                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                        last = change
-                        if (!change.pressed) break
-                    }
-                    GestureClassifier.classify(
-                        dx = last.position.x - down.position.x,
-                        dy = last.position.y - down.position.y,
-                        durationMs = last.uptimeMillis - down.uptimeMillis,
-                        tapSlopPx = tapSlop,
-                        minSwipePx = minSwipe,
-                    )?.let { onKey.value(it) }
+    // No clock here: it would sit on top of the close button.
+    ScreenScaffold(timeText = {}) { _ ->
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .onRotaryScrollEvent { rotary(it.verticalScrollPixels) }
+                .focusRequester(focus)
+                .focusable()
+                .testTag("touchpad")
+                .semantics {
+                    contentDescription = description
+                    onClick(label = okLabel) { onKey.value(RemoteKey.SELECT); true }
                 }
-            },
-    ) {
-        Text(
-            text = description,
-            modifier = Modifier.align(Alignment.Center).padding(horizontal = 28.dp),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        KeyButton(
-            R.drawable.ic_close,
-            stringResource(R.string.close),
-            onClose,
-            size = 36.dp,
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = 10.dp),
-        )
-        KeyButton(
-            R.drawable.ic_home,
-            stringResource(R.string.key_home),
-            { onKey.value(RemoteKey.HOME) },
-            size = 36.dp,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp),
-        )
-        ConnectionRing(ui.connection)
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        down.consume()
+                        var last = down
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            event.changes.forEach { it.consume() }
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                            last = change
+                            if (!change.pressed) break
+                        }
+                        GestureClassifier.classify(
+                            dx = last.position.x - down.position.x,
+                            dy = last.position.y - down.position.y,
+                            durationMs = last.uptimeMillis - down.uptimeMillis,
+                            tapSlopPx = tapSlop,
+                            minSwipePx = minSwipe,
+                        )?.let { onKey.value(it) }
+                    }
+                },
+        ) {
+            Text(
+                text = description,
+                modifier = Modifier.align(Alignment.Center).padding(horizontal = 28.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            KeyButton(
+                R.drawable.ic_close,
+                stringResource(R.string.close),
+                onClose,
+                size = 36.dp,
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 10.dp),
+            )
+            KeyButton(
+                R.drawable.ic_home,
+                stringResource(R.string.key_home),
+                { onKey.value(RemoteKey.HOME) },
+                size = 36.dp,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp),
+            )
+            ConnectionRing(ui.connection)
+        }
     }
 }

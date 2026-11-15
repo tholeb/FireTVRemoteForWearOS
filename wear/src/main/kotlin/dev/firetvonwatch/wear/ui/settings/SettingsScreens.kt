@@ -46,6 +46,23 @@ private fun Note(text: String) {
     )
 }
 
+/** Short explanation under a setting's name. */
+@Composable
+private fun Explanation(text: String) {
+    Text(text, style = MaterialTheme.typography.bodySmall, maxLines = 7)
+}
+
+@Composable
+private fun SettingSwitch(checked: Boolean, onChange: (Boolean) -> Unit, label: Int, explanation: Int) {
+    SwitchButton(
+        checked = checked,
+        onCheckedChange = onChange,
+        modifier = Modifier.fillMaxWidth(),
+        secondaryLabel = { Explanation(stringResource(explanation)) },
+        label = { Text(stringResource(label), maxLines = 2) },
+    )
+}
+
 @Composable
 fun SettingsScreen(vm: RemoteViewModel, ui: RemoteUiState, onDevices: () -> Unit) {
     val settings = ui.settings
@@ -62,7 +79,9 @@ fun SettingsScreen(vm: RemoteViewModel, ui: RemoteUiState, onDevices: () -> Unit
                     onClick = onDevices,
                     modifier = Modifier.fillMaxWidth(),
                     icon = { Icon(painterResource(R.drawable.ic_tv), contentDescription = null) },
-                    secondaryLabel = { Text(ui.activeDevice?.address ?: "") },
+                    secondaryLabel = {
+                        Explanation(listOfNotNull(ui.activeDevice?.address, stringResource(R.string.settings_device_desc)).joinToString("\n"))
+                    },
                     label = { Text(ui.activeDevice?.name ?: stringResource(R.string.settings_no_device), maxLines = 1) },
                 )
             }
@@ -73,30 +92,47 @@ fun SettingsScreen(vm: RemoteViewModel, ui: RemoteUiState, onDevices: () -> Unit
                 }
             }
             item {
-                SwitchButton(
-                    checked = settings.rotaryMode == RotaryMode.VOLUME,
-                    onCheckedChange = { volume ->
-                        vm.updateSettings { it.copy(rotaryMode = if (volume) RotaryMode.VOLUME else RotaryMode.NAVIGATE) }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.settings_rotary_volume)) },
+                SettingSwitch(
+                    checked = settings.volumeControlEnabled,
+                    onChange = { on -> vm.updateSettings { it.copy(volumeControlEnabled = on) } },
+                    label = R.string.settings_volume_control,
+                    explanation = R.string.settings_volume_control_desc,
                 )
             }
-            item { Note(stringResource(R.string.volume_cec_hint)) }
+            if (settings.volumeControlEnabled) {
+                item {
+                    SettingSwitch(
+                        checked = settings.rotaryMode == RotaryMode.VOLUME,
+                        onChange = { volume ->
+                            vm.updateSettings { it.copy(rotaryMode = if (volume) RotaryMode.VOLUME else RotaryMode.NAVIGATE) }
+                        },
+                        label = R.string.settings_rotary_volume,
+                        explanation = R.string.settings_rotary_volume_desc,
+                    )
+                }
+            }
             item {
-                SwitchButton(
+                SettingSwitch(
                     checked = settings.hapticsEnabled,
-                    onCheckedChange = { on -> vm.updateSettings { it.copy(hapticsEnabled = on) } },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.settings_haptics)) },
+                    onChange = { on -> vm.updateSettings { it.copy(hapticsEnabled = on) } },
+                    label = R.string.settings_haptics,
+                    explanation = R.string.settings_haptics_desc,
                 )
             }
             item {
-                SwitchButton(
+                SettingSwitch(
                     checked = settings.startInTouchpad,
-                    onCheckedChange = { on -> vm.updateSettings { it.copy(startInTouchpad = on) } },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.settings_touchpad)) },
+                    onChange = { on -> vm.updateSettings { it.copy(startInTouchpad = on) } },
+                    label = R.string.settings_touchpad,
+                    explanation = R.string.settings_touchpad_desc,
+                )
+            }
+            item {
+                SettingSwitch(
+                    checked = settings.swipeBackCloses,
+                    onChange = { on -> vm.updateSettings { it.copy(swipeBackCloses = on) } },
+                    label = R.string.settings_swipe_back,
+                    explanation = R.string.settings_swipe_back_desc,
                 )
             }
             item {
@@ -104,8 +140,8 @@ fun SettingsScreen(vm: RemoteViewModel, ui: RemoteUiState, onDevices: () -> Unit
                     onClick = { vm.updateSettings { it.copy(idleTimeoutSeconds = nextIdleTimeout(it.idleTimeoutSeconds)) } },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.filledTonalButtonColors(),
-                    secondaryLabel = { Text(stringResource(R.string.settings_idle_value, settings.idleTimeoutSeconds)) },
-                    label = { Text(stringResource(R.string.settings_idle)) },
+                    secondaryLabel = { Explanation(stringResource(R.string.settings_idle_desc)) },
+                    label = { Text(stringResource(R.string.settings_idle_label, settings.idleTimeoutSeconds), maxLines = 2) },
                 )
             }
             item {
@@ -114,6 +150,7 @@ fun SettingsScreen(vm: RemoteViewModel, ui: RemoteUiState, onDevices: () -> Unit
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.filledTonalButtonColors(),
                     icon = { Icon(painterResource(R.drawable.ic_power), contentDescription = null) },
+                    secondaryLabel = { Explanation(stringResource(R.string.settings_sleep_desc)) },
                     label = { Text(stringResource(R.string.settings_sleep)) },
                 )
             }
@@ -123,6 +160,7 @@ fun SettingsScreen(vm: RemoteViewModel, ui: RemoteUiState, onDevices: () -> Unit
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.filledTonalButtonColors(),
                     icon = { Icon(painterResource(R.drawable.ic_power), contentDescription = null) },
+                    secondaryLabel = { Explanation(stringResource(R.string.settings_wake_desc)) },
                     label = { Text(stringResource(R.string.settings_wake)) },
                 )
             }
@@ -138,6 +176,7 @@ fun SettingsScreen(vm: RemoteViewModel, ui: RemoteUiState, onDevices: () -> Unit
                     onClick = { confirmReset = true },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.filledVariantButtonColors(),
+                    secondaryLabel = { Explanation(stringResource(R.string.settings_reset_key_desc)) },
                     label = { Text(stringResource(R.string.settings_reset_key)) },
                 )
             }

@@ -3,7 +3,11 @@ package dev.firetvonwatch.wear
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import dev.firetvonwatch.domain.model.RemoteSettings
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -35,6 +39,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.emptyFlow
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -46,14 +52,15 @@ import org.robolectric.shadows.ShadowLooper
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w227dp-h227dp-small-notlong-round-watch-xhdpi-keyshidden-nonav", application = android.app.Application::class)
 class RemoteUiTest {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     private val tv = FireTvDevice("tv", "Living room", "192.168.1.42", authorized = true)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val connection = FakeFireTvConnection()
+    private val settingsRepo = InMemorySettingsRepository()
     private val deps = object : AppDependencies {
         override val deviceRepository: DeviceRepository = InMemoryDeviceRepository(listOf(tv))
-        override val settingsRepository: SettingsRepository = InMemorySettingsRepository()
+        override val settingsRepository: SettingsRepository = settingsRepo
         override val session = RemoteSession(connection, FakeNetworkGate(), deviceRepository, settingsRepository, scope)
         override val discovery = DeviceDiscovery { emptyFlow() }
         override fun keyFingerprint() = "AA:BB"
@@ -142,5 +149,74 @@ class RemoteUiTest {
         eventually { connection.connectAttempts.isNotEmpty() }
         compose.onNodeWithText("Connexion refusée. Activez le débogage ADB sur la TV.").assertIsDisplayed()
         compose.onNodeWithText("Réessayer").assertIsDisplayed()
+    }
+
+    /**
+     * Regression: the full-screen connection ring used to carry the state description, which
+     * put a screen-sized accessibility node on top of every button and hid them from TalkBack.
+     */
+    @Test fun connectionStateNodeDoesNotCoverTheButtons() {
+        compose.setContent { FireTvTheme { FireTvApp(deps) } }
+        val state = compose.onNodeWithContentDescription(context.getString(R.string.state_disconnected)).fetchSemanticsNode()
+        assertTrue("state node is ${state.size}", state.size.width < 10 && state.size.height < 10)
+        compose.onNodeWithContentDescription(context.getString(R.string.key_up)).assertIsDisplayed()
+    }
+
+    private fun swipeToNextPage() {
+        compose.onNodeWithTag("pager").performTouchInput { swipeLeft(startX = centerX + width / 3f, endX = centerX - width / 3f) }
+        eventually { true }
+    }
+
+    private fun pressBack() {
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+    }
+
+    @Test fun backGoesToPreviousPageAndNeverClosesTheRemote() {
+        compose.setContent { FireTvTheme { FireTvApp(deps) } }
+        swipeToNextPage()
+        compose.onNodeWithContentDescription(context.getString(R.string.key_play_pause)).assertIsDisplayed()
+        pressBack()
+        compose.onNodeWithTag("ok").assertIsDisplayed()
+        pressBack() // first page: ignored
+        compose.onNodeWithTag("ok").assertIsDisplayed()
+        assertFalse(compose.activity.isFinishing)
+    }
+
+    @Test fun backClosesTheAppFromTheFirstPageWhenAllowed() {
+        settingsRepo.state.value = RemoteSettings(swipeBackCloses = true)
+        compose.setContent { FireTvTheme { FireTvApp(deps) } }
+        compose.onNodeWithTag("ok").assertIsDisplayed()
+        pressBack()
+        assertTrue(compose.activity.isFinishing)
+    }
+
+    @Test fun volumeKeysCanBeTurnedOff() {
+        settingsRepo.state.value = RemoteSettings(volumeControlEnabled = false)
+        compose.setContent { FireTvTheme { FireTvApp(deps) } }
+        swipeToNextPage()
+        compose.onAllNodesWithContentDescription(context.getString(R.string.key_volume_up)).assertCountEquals(0)
+        compose.onAllNodesWithContentDescription(context.getString(R.string.key_mute)).assertCountEquals(0)
+        compose.onNodeWithContentDescription(context.getString(R.string.key_play_pause)).performClick()
+        waitForKeys(RemoteKey.PLAY_PAUSE)
+    }
+
+    @Test fun backOnTheTouchpadReturnsToTheRemote() {
+        compose.setContent { FireTvTheme { FireTvApp(deps) } }
+        compose.onNodeWithContentDescription(context.getString(R.string.open_touchpad)).performClick()
+        compose.onNodeWithTag("touchpad").assertIsDisplayed()
+        pressBack()
+        compose.onNodeWithTag("ok").assertIsDisplayed()
+        assertFalse(compose.activity.isFinishing)
+    }
+
+    @Test fun settingsOpenAndBackReturnsToTheMediaPage() {
+        compose.setContent { FireTvTheme { FireTvApp(deps) } }
+        swipeToNextPage()
+        compose.onNodeWithContentDescription(context.getString(R.string.open_settings)).performClick()
+        compose.onNodeWithText(context.getString(R.string.settings_volume_control)).assertIsDisplayed()
+        pressBack()
+        compose.onNodeWithContentDescription(context.getString(R.string.key_play_pause)).assertIsDisplayed()
+        assertFalse(compose.activity.isFinishing)
     }
 }

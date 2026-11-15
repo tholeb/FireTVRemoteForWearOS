@@ -24,7 +24,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -92,7 +95,15 @@ fun ConnectionRing(state: ConnectionState, modifier: Modifier = Modifier) {
         animationSpec = infiniteRepeatable(tween(1_200, easing = LinearEasing), RepeatMode.Restart),
         label = "rotation",
     )
-    Canvas(modifier.fillMaxSize().semantics { contentDescription = description }) {
+    // The full-screen ring must not carry semantics: a node covering the whole screen on top
+    // of the buttons hides them from TalkBack. The state is announced by a tiny live region.
+    Box(
+        Modifier.size(1.dp).semantics {
+            contentDescription = description
+            liveRegion = LiveRegionMode.Polite
+        },
+    )
+    Canvas(modifier.fillMaxSize()) {
         val strokePx = 3.dp.toPx()
         val inset = strokePx / 2 + 1.dp.toPx()
         val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
