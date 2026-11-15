@@ -1,0 +1,86 @@
+name: Release build
+
+# Builds, tests and attaches the Wear OS APK to every published GitHub release.
+# Can also be started by hand (Actions → Release build → Run workflow); the APK is then
+# only kept as a workflow artifact.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write # upload the APK to the release
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      VERSION_NAME: ${{ github.event.release.tag_name || format('0.0.0-dev.{0}', github.run_number) }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-java@v6.3.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v4.0.4
+        with:
+          # build-tools 36.0.0 is AGP's default (used for d8 by the injector task).
+          packages: "platform-tools platforms;android-37.0 build-tools;37.0.0 build-tools;36.0.0"
+
+      - uses: gradle/actions/setup-gradle@v6.4.1
+
+      - name: Decode release keystore (optional)
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$RELEASE_KEYSTORE_BASE64" ]; then
+            echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "RELEASE_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "Signing with the release keystore."
+          else
+            echo "::warning::No RELEASE_KEYSTORE_BASE64 secret: the APK is signed with a throwaway debug key."
+          fi
+
+      - name: Test, lint and build
+        env:
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: >
+          ./gradlew --no-configuration-cache
+          test :wear:lintDebug :wear:assembleRelease
+          -PversionCode=${{ github.run_number }}
+          -PversionName=${{ env.VERSION_NAME }}
+
+      - name: Rename APK
+        run: |
+          mkdir -p dist
+          cp wear/build/outputs/apk/release/wear-release.apk "dist/FireTVRemote-wear-${VERSION_NAME}.apk"
+          (cd dist && sha256sum *.apk > SHA256SUMS.txt)
+
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: FireTVRemote-wear-${{ env.VERSION_NAME }}
+          path: dist/
+
+      - name: Attach APK to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/* --clobber
+
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: reports
+          path: |
+            */build/reports/
+            */build/test-results/

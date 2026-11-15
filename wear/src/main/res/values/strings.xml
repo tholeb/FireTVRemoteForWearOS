@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Fire TV Remote</string>
+    <string name="tile_label" translatable="false">Fire TV Remote</string>
+    <string name="complication_label" translatable="false">Fire TV Remote</string>
+    <string name="complication_short" translatable="false">TV</string>
+
+    <!-- Keys (content descriptions) -->
+    <string name="key_up">Up</string>
+    <string name="key_down">Down</string>
+    <string name="key_left">Left</string>
+    <string name="key_right">Right</string>
+    <string name="key_select">OK</string>
+    <string name="key_back">Back</string>
+    <string name="key_home">Home</string>
+    <string name="key_menu">Menu</string>
+    <string name="key_play_pause">Play or pause</string>
+    <string name="key_rewind">Rewind</string>
+    <string name="key_fast_forward">Fast forward</string>
+    <string name="key_volume_up">Volume up</string>
+    <string name="key_volume_down">Volume down</string>
+    <string name="key_mute">Mute</string>
+    <string name="key_delete">Delete character</string>
+    <string name="key_enter">Enter</string>
+    <string name="open_touchpad">Open touchpad</string>
+    <string name="open_keyboard">Type text</string>
+    <string name="open_settings">Settings</string>
+    <string name="open_remote">Open remote</string>
+    <string name="close">Close</string>
+
+    <!-- Connection -->
+    <string name="state_disconnected">Idle</string>
+    <string name="state_connecting">Connecting…</string>
+    <string name="state_connected">Connected</string>
+    <string name="state_awaiting_auth_title">Check your TV</string>
+    <string name="state_awaiting_auth_body">Tick \"Always allow from this computer\" and press OK with the TV\'s remote.</string>
+    <string name="key_fingerprint">Key fingerprint: %1$s</string>
+    <string name="error_no_wifi">Watch Wi-Fi unavailable. Turn on Wi-Fi and join the TV\'s network.</string>
+    <string name="error_unreachable">TV not reachable. Check that it\'s on and the IP address is right.</string>
+    <string name="error_refused">Connection refused. Turn on ADB debugging on the TV.</string>
+    <string name="error_auth_timeout">No answer from the TV. Accept the prompt on the TV, then retry.</string>
+    <string name="error_auth_rejected">The TV refused the connection. Retry and choose Allow on the TV.</string>
+    <string name="error_io">Connection lost.</string>
+    <string name="retry">Retry</string>
+    <string name="devices">Devices</string>
+
+    <!-- Onboarding / discovery -->
+    <string name="onboarding_title">Set up</string>
+    <string name="onboarding_step1">On the Fire TV: Settings → My Fire TV → About. Click the device name 7 times.</string>
+    <string name="onboarding_step2">Back in My Fire TV → Developer options, turn on ADB debugging.</string>
+    <string name="onboarding_step3">Keep the TV remote nearby to accept the first connection.</string>
+    <string name="grant_permission">Allow local network</string>
+    <string name="permission_rationale">Needed to find and control your TV on Wi-Fi.</string>
+    <string name="find_tv">Find Fire TV</string>
+    <string name="discover_title">Fire TVs</string>
+    <string name="scanning">Searching…</string>
+    <string name="nothing_found">Nothing found. Enter the IP shown on the TV under About → Network.</string>
+    <string name="enter_ip">Enter IP address</string>
+    <string name="enter_ip_label">IP, e.g. 192.168.1.42</string>
+    <string name="invalid_ip">Invalid address: %1$s</string>
+    <string name="rescan">Search again</string>
+    <string name="adb_device">ADB device</string>
+    <string name="manual_device_name">Fire TV %1$s</string>
+    <string name="pair_title">Connecting</string>
+    <string name="paired">Connected!</string>
+    <string name="start">Start</string>
+
+    <!-- Pages -->
+    <string name="volume_cec_hint">Volume works when the TV/soundbar is controlled over HDMI-CEC.</string>
+    <string name="apps_title">Apps</string>
+    <string name="apps_favorites">Favorites</string>
+    <string name="apps_all">All apps</string>
+    <string name="apps_load">Load apps from TV</string>
+    <string name="apps_error">Could not list apps: %1$s</string>
+    <string name="apps_long_press_hint">Long-press an app to add or remove it from favorites.</string>
+    <string name="favorite_add">Add to favorites</string>
+    <string name="favorite_remove">Remove from favorites</string>
+    <string name="apps_none">No apps installed besides the system ones.</string>
+
+    <!-- Touchpad -->
+    <string name="touchpad_hint">Swipe to move\nTap = OK · Hold = Back</string>
+
+    <!-- Keyboard -->
+    <string name="keyboard_title">Text</string>
+    <string name="keyboard_input">Type or speak</string>
+    <string name="keyboard_send">Send</string>
+    <string name="keyboard_send_enter">Send + Enter</string>
+    <string name="keyboard_ascii_only">Only basic letters, digits and symbols can be typed on the TV.</string>
+    <string name="keyboard_hint">Focus a text field on the TV first.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_no_device">No TV</string>
+    <string name="settings_rotary_volume">Bezel controls volume</string>
+    <string name="settings_haptics">Haptic feedback</string>
+    <string name="settings_touchpad">Start in touchpad</string>
+    <string name="settings_idle">Disconnect after</string>
+    <string name="settings_idle_value">%1$d s idle</string>
+    <string name="settings_sleep">Put TV to sleep</string>
+    <string name="settings_wake">Wake TV</string>
+    <string name="settings_latency">Last command: %1$d ms</string>
+    <string name="settings_latency_none">Last command: –</string>
+    <string name="settings_tv_info">%1$s · Android API %2$d · %3$s</string>
+    <string name="settings_fast_input">fast input</string>
+    <string name="settings_reset_key">Reset watch key</string>
+    <string name="settings_reset_key_confirm">Every TV will ask to authorize the watch again.</string>
+    <string name="add_device">Add TV</string>
+    <string name="forget_device">Forget %1$s?</string>
+    <string name="active">Active</string>
+    <string name="command_failed">Failed: %1$s</string>
+    <string name="no_device_configured">Add a TV first</string>
+</resources>

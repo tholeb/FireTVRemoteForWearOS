@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Touches (descriptions d'accessibilité) -->
+    <string name="key_up">Haut</string>
+    <string name="key_down">Bas</string>
+    <string name="key_left">Gauche</string>
+    <string name="key_right">Droite</string>
+    <string name="key_select">OK</string>
+    <string name="key_back">Retour</string>
+    <string name="key_home">Accueil</string>
+    <string name="key_menu">Menu</string>
+    <string name="key_play_pause">Lecture ou pause</string>
+    <string name="key_rewind">Retour rapide</string>
+    <string name="key_fast_forward">Avance rapide</string>
+    <string name="key_volume_up">Augmenter le volume</string>
+    <string name="key_volume_down">Baisser le volume</string>
+    <string name="key_mute">Couper le son</string>
+    <string name="key_delete">Effacer un caractère</string>
+    <string name="key_enter">Entrée</string>
+    <string name="open_touchpad">Ouvrir le pavé tactile</string>
+    <string name="open_keyboard">Saisir du texte</string>
+    <string name="open_settings">Paramètres</string>
+    <string name="open_remote">Ouvrir la télécommande</string>
+    <string name="close">Fermer</string>
+
+    <!-- Connexion -->
+    <string name="state_disconnected">En veille</string>
+    <string name="state_connecting">Connexion…</string>
+    <string name="state_connected">Connecté</string>
+    <string name="state_awaiting_auth_title">Regardez votre TV</string>
+    <string name="state_awaiting_auth_body">Cochez « Toujours autoriser cet ordinateur » puis appuyez sur OK avec la télécommande de la TV.</string>
+    <string name="key_fingerprint">Empreinte de la clé : %1$s</string>
+    <string name="error_no_wifi">Wi-Fi de la montre indisponible. Activez le Wi-Fi et connectez-vous au réseau de la TV.</string>
+    <string name="error_unreachable">TV injoignable. Vérifiez qu\'elle est allumée et que l\'adresse IP est correcte.</string>
+    <string name="error_refused">Connexion refusée. Activez le débogage ADB sur la TV.</string>
+    <string name="error_auth_timeout">Pas de réponse de la TV. Acceptez la demande sur la TV, puis réessayez.</string>
+    <string name="error_auth_rejected">La TV a refusé la connexion. Réessayez et choisissez Autoriser sur la TV.</string>
+    <string name="error_io">Connexion perdue.</string>
+    <string name="retry">Réessayer</string>
+    <string name="devices">Appareils</string>
+
+    <!-- Configuration / recherche -->
+    <string name="onboarding_title">Configuration</string>
+    <string name="onboarding_step1">Sur la Fire TV : Paramètres → Ma Fire TV → À propos. Cliquez 7 fois sur le nom de l\'appareil.</string>
+    <string name="onboarding_step2">Revenez dans Ma Fire TV → Options pour les développeurs et activez le débogage ADB.</string>
+    <string name="onboarding_step3">Gardez la télécommande de la TV à portée de main pour accepter la première connexion.</string>
+    <string name="grant_permission">Autoriser le réseau local</string>
+    <string name="permission_rationale">Nécessaire pour trouver et contrôler votre TV en Wi-Fi.</string>
+    <string name="find_tv">Trouver la Fire TV</string>
+    <string name="discover_title">Fire TV</string>
+    <string name="scanning">Recherche…</string>
+    <string name="nothing_found">Aucun appareil trouvé. Saisissez l\'adresse IP indiquée sur la TV dans À propos → Réseau.</string>
+    <string name="enter_ip">Saisir l\'adresse IP</string>
+    <string name="enter_ip_label">IP, ex. 192.168.1.42</string>
+    <string name="invalid_ip">Adresse invalide : %1$s</string>
+    <string name="rescan">Relancer la recherche</string>
+    <string name="adb_device">Appareil ADB</string>
+    <string name="manual_device_name">Fire TV %1$s</string>
+    <string name="pair_title">Connexion</string>
+    <string name="paired">Connecté !</string>
+    <string name="start">Commencer</string>
+
+    <!-- Pages -->
+    <string name="volume_cec_hint">Le volume fonctionne si la TV ou la barre de son est contrôlée en HDMI-CEC.</string>
+    <string name="apps_title">Applis</string>
+    <string name="apps_favorites">Favoris</string>
+    <string name="apps_all">Toutes les applis</string>
+    <string name="apps_load">Charger les applis de la TV</string>
+    <string name="apps_error">Impossible de lister les applis : %1$s</string>
+    <string name="apps_long_press_hint">Appui long sur une appli pour l\'ajouter aux favoris ou l\'en retirer.</string>
+    <string name="favorite_add">Ajouter aux favoris</string>
+    <string name="favorite_remove">Retirer des favoris</string>
+    <string name="apps_none">Aucune appli installée à part celles du système.</string>
+
+    <!-- Pavé tactile -->
+    <string name="touchpad_hint">Glissez pour vous déplacer\nAppui = OK · Appui long = Retour</string>
+
+    <!-- Clavier -->
+    <string name="keyboard_title">Texte</string>
+    <string name="keyboard_input">Écrire ou dicter</string>
+    <string name="keyboard_send">Envoyer</string>
+    <string name="keyboard_send_enter">Envoyer + Entrée</string>
+    <string name="keyboard_ascii_only">Seuls les lettres sans accent, les chiffres et les symboles simples peuvent être saisis sur la TV.</string>
+    <string name="keyboard_hint">Sélectionnez d\'abord un champ de texte sur la TV.</string>
+
+    <!-- Paramètres -->
+    <string name="settings_title">Paramètres</string>
+    <string name="settings_no_device">Aucune TV</string>
+    <string name="settings_rotary_volume">La lunette règle le volume</string>
+    <string name="settings_haptics">Retour haptique</string>
+    <string name="settings_touchpad">Démarrer sur le pavé tactile</string>
+    <string name="settings_idle">Déconnecter après</string>
+    <string name="settings_idle_value">%1$d s d\'inactivité</string>
+    <string name="settings_sleep">Mettre la TV en veille</string>
+    <string name="settings_wake">Réveiller la TV</string>
+    <string name="settings_latency">Dernière commande : %1$d ms</string>
+    <string name="settings_latency_none">Dernière commande : –</string>
+    <string name="settings_tv_info">%1$s · Android API %2$d · %3$s</string>
+    <string name="settings_fast_input">saisie rapide</string>
+    <string name="settings_reset_key">Réinitialiser la clé de la montre</string>
+    <string name="settings_reset_key_confirm">Chaque TV demandera de nouveau d\'autoriser la montre.</string>
+    <string name="add_device">Ajouter une TV</string>
+    <string name="forget_device">Oublier %1$s ?</string>
+    <string name="active">Active</string>
+    <string name="command_failed">Échec : %1$s</string>
+    <string name="no_device_configured">Ajoutez d\'abord une TV</string>
+</resources>
