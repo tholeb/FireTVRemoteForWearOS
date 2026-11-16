@@ -1,8 +1,13 @@
-# Fire TV Remote for Wear OS
+<p align="center">
+  <img src="docs/logo.svg" width="112" alt="Fire TV Remote logo">
+</p>
 
-A standalone Wear OS app (built for the Samsung Galaxy Watch 9 on Wear OS 7) that controls an
-Amazon **Fire OS** Fire TV over the local network using **ADB over TCP**. It doesn't need a
-phone app, a cloud service or any telemetry.
+<h1 align="center">Fire TV Remote for Wear OS</h1>
+
+<p align="center">
+  Control your Amazon Fire TV from your wrist. No phone, no cloud, no telemetry.<br>
+  <a href="https://github.com/tholeb/FireTVRemoteForWearOS/releases/latest"><b>Download the latest APK</b></a>
+</p>
 
 <p align="center">
   <img src="docs/screenshots/remote.png" width="180" alt="D-pad remote with green connected ring">
@@ -13,9 +18,45 @@ phone app, a cloud service or any telemetry.
   <img src="docs/screenshots/touchpad.png" width="180" alt="Touchpad with Back, Home and Menu buttons; the exit ring fills while holding ✕">
   <img src="docs/screenshots/keyboard.png" width="180" alt="Text input screen">
   <img src="docs/screenshots/settings.png" width="180" alt="Settings with an explanation under each option">
-  <img src="docs/screenshots/media-novolume.png" width="180" alt="Media page with volume buttons turned off">
 </p>
 <p align="center"><sub>Screenshots from the Wear OS 7 emulator controlling an Android TV 11 emulator (the Fire OS 8 base).</sub></p>
+
+## About
+
+Fire TV Remote is a standalone Wear OS app that turns your watch into a full remote for an
+Amazon **Fire OS** Fire TV. It talks to the TV directly over your local Wi-Fi using
+**ADB over TCP**, the same debugging channel developers use, so it needs no companion phone
+app, no account and no internet connection.
+
+After connecting, the watch starts a tiny helper on the TV that injects key presses directly,
+so a key press reaches the TV in **about 10–15 ms** instead of half a second. Built for the
+Samsung Galaxy Watch on Wear OS 7; it runs on any watch with Wear OS 5 (API 34) or newer.
+
+## Features
+
+- **Remote**: D-pad, OK, Back, Home and Menu, with shortcut keys in the grid corners.
+- **Media keys**: Play/Pause, Rewind, Fast-forward, Volume ± and Mute (volume over
+  HDMI-CEC; can be hidden if your TV's sound is IR-only).
+- **App launcher**: your installed apps and popular streaming apps (Netflix, Prime Video,
+  YouTube…) with their real icons and names, sorted by name. Long-press to pin a favourite.
+- **Touchpad mode**: swipe to move, tap for OK, hold for Back.
+- **Text input**: type or dictate on the watch and send it to the focused field on the TV.
+- **Bezel / crown**: moves the focus up and down, or controls the volume.
+- **Wake TV**: wakes the Fire TV on launch, and only sends POWER if it's really still asleep.
+- **Tile and complication**: Back, Play/Pause and Home straight from a tile; open the remote
+  from your watch face.
+- **Automatic discovery**: finds the TV by mDNS or a local network scan, with manual IP entry
+  as a fallback.
+- **Battery-friendly**: the connection and Wi-Fi are released when you leave the app or stop
+  using it. In the remote, the screen stays on but dims, and turns off after 5 idle minutes.
+- **Safe navigation**: Back moves to the previous page and never closes the remote by
+  accident (configurable).
+- **Secure**: RSA-2048 ADB key, encrypted with a non-exportable Android Keystore key, never
+  backed up.
+- **Languages**: English and French.
+
+<details>
+<summary>All features in detail</summary>
 
 | Feature | Notes |
 |---|---|
@@ -35,11 +76,28 @@ phone app, a cloud service or any telemetry.
 | Haptics, connection ring | Ring colours: green = connected, amber = connecting, red = error, grey = idle |
 | Discovery | mDNS (`_amzn-wplay._tcp`) plus a /24 scan of port 5555; manual IP as fallback |
 
-## 1. Prepare the Fire TV (one time)
+</details>
+
+## Requirements
+
+- A Wear OS watch running **Wear OS 5 (API 34) or newer**, on the same Wi-Fi as the TV.
+- A Fire TV running **Fire OS** (5.x to 8.x). **Vega OS** Fire TVs (e.g. Fire TV Stick 4K
+  Select) are not supported: they have no ADB.
+
+| Fire OS | Android | Status |
+|---|---|---|
+| **8.x** (e.g. 8.1.8.5) | 11 (API 30) | **Primary target.** Emulator-verified end to end: pairing, keys via injector (10–14 ms), app list, app launch, fallback |
+| 7.x | 9 (API 28) | Same code path as Fire OS 8 (shell v2, no `cmd input` → injector). Not run on an emulator |
+| 6.x | 7.1 (API 25) | Same path. Not run on an emulator |
+| 5.x | 5.1 (API 22) | No shell v2 in adbd: the app falls back to the legacy `shell:` service (exit-code marker, pty echo filtering), and the commands avoid tools missing there (`cmd`, `grep`, `tail`, `cut`, `sha256sum`). Unit-tested only |
+| Vega OS | – | Not supported (no ADB) |
+
+## Install
+
+### 1. Prepare the Fire TV (one time)
 
 1. Check it runs **Fire OS**: *Settings → My Fire TV → About*. If the software version reads
-   "OS 1.x", it's **Vega OS** (e.g. Fire TV Stick 4K Select). Vega has no ADB, so **this app
-   can't work with it**.
+   "OS 1.x", it's **Vega OS**, and this app can't work with it.
 2. Turn on developer options: *Settings → My Fire TV → About*, then click the device name
    **7 times**.
 3. *Settings → My Fire TV → Developer options → **ADB debugging: ON***.
@@ -48,28 +106,12 @@ phone app, a cloud service or any telemetry.
    the TV. Tick **Always allow from this computer** and press **OK**. The watch can't answer
    this prompt for you, because it isn't authorized yet.
 
-## 2. Build
+### 2. Install the app on the watch (ADB over Wi-Fi)
 
-You need JDK 21 and the Android SDK with platform `android-37.0` and build-tools 37.0.0
-(Android Studio installs both). Then run:
-
-```bash
-./gradlew :wear:assembleDebug
-```
-
-Other useful tasks:
-
-```bash
-./gradlew test                  # unit + Robolectric UI tests for every module
-./gradlew :wear:lintDebug
-./gradlew :wear:assembleRelease # minified; signed with the debug key for sideloading
-```
-
-> Toolchain used during development (no root needed): JDK and SDK under `~/.local/android-dev`.
-> Run Gradle with `JAVA_HOME=~/.local/android-dev/jdk`. `local.properties` points to that SDK;
-> change `sdk.dir` if yours lives somewhere else.
-
-## 3. Install on the watch (ADB over Wi-Fi)
+Download `FireTVRemote-wear-<version>.apk` from the
+[latest release](https://github.com/tholeb/FireTVRemoteForWearOS/releases/latest), or
+[build it yourself](#build). You need `adb` from the
+[Android SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools).
 
 1. On the watch: *Settings → About watch → Software information → tap **Software version***
    until the watch says developer mode is on. Menu names vary slightly between One UI
@@ -94,13 +136,34 @@ adb install -r FireTVRemote-wear-<version>.apk
 networking (`networkingMode=mirrored` in `%UserProfile%\.wslconfig`) or run Windows'
 `adb.exe` (platform-tools for Windows) on the APK.
 
-## 4. First run
+## Build
+
+You need **JDK 21** and the Android SDK with platform `android-37.0` and build-tools 37.0.0
+(Android Studio installs both). Set `sdk.dir` in `local.properties` if Gradle can't find the
+SDK. Then run:
+
+```bash
+./gradlew :wear:assembleDebug
+```
+
+The APK is written to `wear/build/outputs/apk/debug/`. Other useful tasks:
+
+```bash
+./gradlew test                  # unit + Robolectric UI tests for every module
+./gradlew :wear:lintDebug
+./gradlew :wear:assembleRelease # minified; signed with the debug key for sideloading
+```
+
+Signed release APKs are built by GitHub Actions; see
+[.github/workflows/README.md](.github/workflows/README.md).
+
+## First run
 
 1. Open **Fire TV Remote** and allow **local network** access. This is a runtime permission
    on Wear OS 7.
 2. Tap **Find Fire TV**. Pick the TV from the list, or tap **Enter IP address**.
-3. Accept the prompt on the TV (see §1.5). The watch shows the key fingerprint so you can
-   compare it with the one the TV displays.
+3. Accept the prompt on the TV (see [step 1.5](#1-prepare-the-fire-tv-one-time)). The watch
+   shows the key fingerprint so you can compare it with the one the TV displays.
 4. Use the remote: swipe left for media keys, then again for apps.
 
 <p align="center">
@@ -258,16 +321,6 @@ These can't be checked without hardware:
 | The Fire TV wakes but the TV screen stays black | The Fire TV turns the TV on through HDMI-CEC. Turn it on on both: Fire TV *Settings → Display & Sounds → HDMI CEC Device Control*, and on the TV (Samsung: *Anynet+ (HDMI-CEC)*). Older TVs without CEC have to be switched on with their own remote |
 | "The Fire TV is still asleep" | The Fire TV ignored both WAKEUP and POWER, or is in a deep sleep that drops the network. Wake it once with its remote |
 
-## Fire OS compatibility
-
-| Fire OS | Android | Status |
-|---|---|---|
-| **8.x** (e.g. 8.1.8.5) | 11 (API 30) | **Primary target.** Emulator-verified end to end: pairing, keys via injector (10–14 ms), app list, app launch, fallback |
-| 7.x | 9 (API 28) | Same code path as Fire OS 8 (shell v2, no `cmd input` → injector). Not run on an emulator |
-| 6.x | 7.1 (API 25) | Same path. Not run on an emulator |
-| 5.x | 5.1 (API 22) | No shell v2 in adbd: the app falls back to the legacy `shell:` service (exit-code marker, pty echo filtering), and the commands avoid tools missing there (`cmd`, `grep`, `tail`, `cut`, `sha256sum`). Unit-tested only |
-| Vega OS | – | Not supported (no ADB) |
-
 ## Known limitations
 
 - **Vega OS Fire TVs are not supported** (no consumer ADB).
@@ -283,13 +336,13 @@ These can't be checked without hardware:
 - **Tile** presses run in the background; if Wear OS limits background network for the app,
   they may fail. Use "open remote" in that case.
 - Discovery lists any device with network ADB on, not only Fire TVs.
-- **Not verified on hardware:** the mDNS service name `_amzn-wplay._tcp`, its TXT "n" name
-  field, and the bezel pixels-per-detent value all need checking against the manual checklist.
+- **Not yet verified on real hardware:** the mDNS service name `_amzn-wplay._tcp`, its TXT
+  "n" name field, and the bezel sensitivity.
 
-## Suggested next steps
+## Documentation
 
-1. Run the manual checklist above and send me the latency numbers and anything off.
-2. Tune bezel sensitivity and direction from your results.
-3. Optional: Unicode text via an IME installed on the TV (e.g. ADBKeyboard), long-press keys
-   (`keyevent --longpress`) for fast seek, a Wear OS 7 widget.
-4. Optional: research spike on the Fire TV app's own protocol, if Vega support matters.
+- [Architecture](docs/ARCHITECTURE.md): modules, how a key press travels, the on-TV injector,
+  security, libraries.
+- [Testing](docs/TESTING.md): automated tests, emulator end-to-end results and the hardware
+  test checklist.
+- [Releases](.github/workflows/README.md): CI release builds and signing keys.
