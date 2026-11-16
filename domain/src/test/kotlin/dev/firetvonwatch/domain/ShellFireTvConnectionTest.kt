@@ -10,6 +10,7 @@ import dev.firetvonwatch.domain.protocol.ShellResult
 import dev.firetvonwatch.domain.protocol.ShellTransportFactory
 import dev.firetvonwatch.domain.protocol.TransportException
 import dev.firetvonwatch.domain.protocol.InjectorPayload
+import dev.firetvonwatch.domain.protocol.ShellCommandBuilder
 import dev.firetvonwatch.domain.protocol.InjectorProtocol
 import dev.firetvonwatch.testing.FakeInteractiveShell
 import dev.firetvonwatch.testing.FakeShellTransport
@@ -253,5 +254,66 @@ class InjectorTest {
         assertEquals(null, InjectorProtocol.parseAppInfo("com.a.b", "ERR info X"))
         assertEquals(null, InjectorProtocol.parseAppInfo("com.a.b", "I %%% -"))
         assertEquals(null, InjectorProtocol.parseAppInfo("com.a.b", null))
+    }
+}
+
+class WakeUpTest {
+    private val device = FireTvDevice("tv", "TV", "192.168.1.42")
+
+    /** Fake TV whose `dumpsys power` answers come from [states] in order. */
+    private fun connection(states: MutableList<String>, scope: kotlinx.coroutines.test.TestScope): Pair<ShellFireTvConnection, FakeShellTransportFactory> {
+        val factory = FakeShellTransportFactory(transportProvider = {
+            FakeShellTransport { cmd ->
+                if (cmd == ShellCommandBuilder.POWER_STATE) {
+                    ShellResult(0, "  mWakefulness=${states.removeAt(0)}\n  mWakefulnessChanging=false\n")
+                } else {
+                    FakeShellTransport.fireOs8(cmd)
+                }
+            }
+        })
+        return ShellFireTvConnection(factory, StandardTestDispatcher(scope.testScheduler)) to factory
+    }
+
+    private fun FakeShellTransportFactory.keyCommands() = opened.single().commands.filter { it.startsWith("cmd input keyevent") }
+
+    @Test fun `already awake TV gets no key at all`() = runTest {
+        val (c, f) = connection(mutableListOf("Awake"), this)
+        c.connect(device).getOrThrow()
+        assertEquals(true, c.wakeUp().getOrThrow())
+        assertEquals(emptyList<String>(), f.keyCommands())
+    }
+
+    @Test fun `WAKEUP is enough when it works`() = runTest {
+        val (c, f) = connection(mutableListOf("Asleep", "Awake"), this)
+        c.connect(device).getOrThrow()
+        assertEquals(true, c.wakeUp().getOrThrow())
+        assertEquals(listOf("cmd input keyevent 224"), f.keyCommands())
+    }
+
+    @Test fun `POWER is sent only when the TV is verifiably still asleep`() = runTest {
+        val (c, f) = connection(mutableListOf("Asleep", "Dozing", "Awake"), this)
+        c.connect(device).getOrThrow()
+        assertEquals(true, c.wakeUp().getOrThrow())
+        assertEquals(listOf("cmd input keyevent 224", "cmd input keyevent 26"), f.keyCommands())
+    }
+
+    @Test fun `reports a TV that stays asleep`() = runTest {
+        val (c, _) = connection(mutableListOf("Asleep", "Asleep", "Asleep"), this)
+        c.connect(device).getOrThrow()
+        assertEquals(false, c.wakeUp().getOrThrow())
+    }
+
+    @Test fun `unknown power state never triggers POWER`() = runTest {
+        val (c, f) = connection(mutableListOf("Asleep", "Weird"), this)
+        c.connect(device).getOrThrow()
+        assertEquals(true, c.wakeUp().getOrThrow())
+        assertEquals(listOf("cmd input keyevent 224"), f.keyCommands())
+    }
+
+    @Test fun `power state parsing`() {
+        assertEquals(true, ShellCommandBuilder.parseAwake("mWakefulness=Awake"))
+        assertEquals(false, ShellCommandBuilder.parseAwake("x\n  mWakefulness=Asleep\n"))
+        assertEquals(false, ShellCommandBuilder.parseAwake("mWakefulness=Dreaming"))
+        assertEquals(null, ShellCommandBuilder.parseAwake("Permission Denial"))
     }
 }

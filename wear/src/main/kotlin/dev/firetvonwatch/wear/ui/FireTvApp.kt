@@ -69,6 +69,7 @@ fun FireTvApp(deps: AppDependencies) {
             val message = when (event) {
                 is SessionEvent.CommandFailed -> resources.getString(R.string.command_failed, event.reason)
                 SessionEvent.NoDeviceConfigured -> resources.getString(R.string.no_device_configured)
+                SessionEvent.TvStillAsleep -> resources.getString(R.string.tv_still_asleep)
             }
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         }

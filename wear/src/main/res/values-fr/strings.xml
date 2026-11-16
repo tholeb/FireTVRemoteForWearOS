@@ -114,6 +114,9 @@
     <string name="settings_idle_label">Déconnecter après %1$d s</string>
     <string name="settings_idle_desc">Économise la batterie : la connexion se ferme après ce délai d\'inactivité et se rouvre au prochain appui. Touchez pour changer.</string>
     <string name="settings_sleep_desc">Met la Fire TV en veille.</string>
-    <string name="settings_wake_desc">Réveille la Fire TV si elle est encore joignable sur le réseau.</string>
+    <string name="settings_wake_desc">Réveille la Fire TV. Si l\'écran de la TV reste éteint, activez le HDMI-CEC sur la Fire TV (Affichage et sons) et sur la TV (Samsung : Anynet+).</string>
     <string name="settings_reset_key_desc">Crée une nouvelle identité pour la montre. Chaque TV demandera de nouveau de l\'autoriser.</string>
+    <string name="settings_wake_on_launch">Réveiller la TV à l\'ouverture</string>
+    <string name="settings_wake_on_launch_desc">Réveille la Fire TV à chaque ouverture de la télécommande.</string>
+    <string name="tv_still_asleep">La Fire TV est toujours en veille.</string>
 </resources>

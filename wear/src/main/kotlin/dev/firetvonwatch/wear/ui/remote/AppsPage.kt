@@ -4,6 +4,9 @@ import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -99,13 +102,19 @@ fun AppsPage(vm: RemoteViewModel, ui: RemoteUiState, isCurrent: Boolean, haptics
                             stringResource(R.string.apps_long_press_hint),
                             style = MaterialTheme.typography.bodyExtraSmall,
                             textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                         )
                     }
                 }
             }
+            // Room below the last item so it can scroll clear of the round screen's bottom edge.
+            item { Spacer(Modifier.height(BottomSpace)) }
         }
     }
 }
+
+/** Extra space after the last item of a scrolling list (round screens cut off the bottom). */
+internal val BottomSpace = 56.dp
 
 @Composable
 private fun AppButton(

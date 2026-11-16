@@ -76,6 +76,8 @@ class RemoteViewModel(private val deps: AppDependencies) : ViewModel() {
 
     fun retry() = session.retryNow()
 
+    fun wakeTv() = session.wakeTv()
+
     fun loadApps() {
         if (_apps.value is AppsState.Loading) return
         _apps.value = AppsState.Loading

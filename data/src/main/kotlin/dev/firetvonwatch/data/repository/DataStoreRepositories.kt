@@ -34,6 +34,7 @@ private object Keys {
     val favorites = stringPreferencesKey("favorite_apps")
     val volumeControl = booleanPreferencesKey("volume_control")
     val swipeBackCloses = booleanPreferencesKey("swipe_back_closes")
+    val wakeOnLaunch = booleanPreferencesKey("wake_on_launch")
 }
 
 class DataStoreDeviceRepository(private val store: DataStore<Preferences>) : DeviceRepository {
@@ -93,6 +94,7 @@ class DataStoreSettingsRepository(private val store: DataStore<Preferences>) : S
             prefs[Keys.favorites] = next.favoriteApps.joinToString(",")
             prefs[Keys.volumeControl] = next.volumeControlEnabled
             prefs[Keys.swipeBackCloses] = next.swipeBackCloses
+            prefs[Keys.wakeOnLaunch] = next.wakeOnLaunch
         }
     }
 
@@ -106,6 +108,7 @@ class DataStoreSettingsRepository(private val store: DataStore<Preferences>) : S
             favoriteApps = this[Keys.favorites]?.split(',')?.filter { it.isNotBlank() } ?: defaults.favoriteApps,
             volumeControlEnabled = this[Keys.volumeControl] ?: defaults.volumeControlEnabled,
             swipeBackCloses = this[Keys.swipeBackCloses] ?: defaults.swipeBackCloses,
+            wakeOnLaunch = this[Keys.wakeOnLaunch] ?: defaults.wakeOnLaunch,
         )
     }
 }

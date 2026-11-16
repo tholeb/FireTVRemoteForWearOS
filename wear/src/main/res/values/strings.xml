@@ -119,6 +119,9 @@
     <string name="settings_idle_label">Disconnect after %1$d s</string>
     <string name="settings_idle_desc">Saves battery: the connection closes after this idle time and reopens on the next press. Tap to change.</string>
     <string name="settings_sleep_desc">Puts the Fire TV in standby.</string>
-    <string name="settings_wake_desc">Wakes the Fire TV if it\'s still reachable on the network.</string>
+    <string name="settings_wake_desc">Wakes the Fire TV. If the TV screen stays off, turn on HDMI-CEC on the Fire TV (Display &amp; Sounds) and on the TV (Samsung: Anynet+).</string>
     <string name="settings_reset_key_desc">Creates a new identity for the watch. Every TV will ask to authorize it again.</string>
+    <string name="settings_wake_on_launch">Wake TV on launch</string>
+    <string name="settings_wake_on_launch_desc">Wakes the Fire TV each time you open the remote.</string>
+    <string name="tv_still_asleep">The Fire TV is still asleep.</string>
 </resources>

@@ -1,6 +1,8 @@
 package dev.firetvonwatch.wear.ui.settings
 
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,6 +37,7 @@ import dev.firetvonwatch.domain.model.RotaryMode
 import dev.firetvonwatch.wear.R
 import dev.firetvonwatch.wear.ui.RemoteUiState
 import dev.firetvonwatch.wear.ui.RemoteViewModel
+import dev.firetvonwatch.wear.ui.remote.BottomSpace
 
 @Composable
 private fun Note(text: String) {
@@ -129,6 +132,14 @@ fun SettingsScreen(vm: RemoteViewModel, ui: RemoteUiState, onDevices: () -> Unit
             }
             item {
                 SettingSwitch(
+                    checked = settings.wakeOnLaunch,
+                    onChange = { on -> vm.updateSettings { it.copy(wakeOnLaunch = on) } },
+                    label = R.string.settings_wake_on_launch,
+                    explanation = R.string.settings_wake_on_launch_desc,
+                )
+            }
+            item {
+                SettingSwitch(
                     checked = settings.swipeBackCloses,
                     onChange = { on -> vm.updateSettings { it.copy(swipeBackCloses = on) } },
                     label = R.string.settings_swipe_back,
@@ -156,7 +167,7 @@ fun SettingsScreen(vm: RemoteViewModel, ui: RemoteUiState, onDevices: () -> Unit
             }
             item {
                 Button(
-                    onClick = { vm.press(RemoteKey.WAKE_UP) },
+                    onClick = vm::wakeTv,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.filledTonalButtonColors(),
                     icon = { Icon(painterResource(R.drawable.ic_power), contentDescription = null) },
@@ -180,6 +191,8 @@ fun SettingsScreen(vm: RemoteViewModel, ui: RemoteUiState, onDevices: () -> Unit
                     label = { Text(stringResource(R.string.settings_reset_key)) },
                 )
             }
+            // Room below the last item so it can scroll clear of the round screen's bottom edge.
+            item { Spacer(Modifier.height(BottomSpace)) }
         }
     }
 

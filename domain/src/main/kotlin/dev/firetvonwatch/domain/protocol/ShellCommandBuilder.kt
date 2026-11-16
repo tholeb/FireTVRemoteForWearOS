@@ -73,6 +73,18 @@ object ShellCommandBuilder {
         return commands.joinToString(" && ")
     }
 
+    /** Power state; the output is parsed by [parseAwake]. */
+    const val POWER_STATE = "dumpsys power"
+
+    private val wakefulness = Regex("""mWakefulness=(\w+)""")
+
+    /** true = Awake, false = Asleep/Dozing/Dreaming, null = unknown output. */
+    fun parseAwake(dumpsysPower: String): Boolean? = when (wakefulness.find(dumpsysPower)?.groupValues?.get(1)) {
+        "Awake" -> true
+        "Asleep", "Dozing", "Dreaming" -> false
+        else -> null
+    }
+
     fun isValidPackage(packageName: String): Boolean = packageRegex.matches(packageName)
 
     /**

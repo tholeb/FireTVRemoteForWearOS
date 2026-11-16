@@ -67,6 +67,16 @@ class FakeFireTvConnection(
         return details[packageName]?.let { Result.success(it) } ?: Result.failure(IllegalStateException("ERR info"))
     }
 
+    /** Results returned by successive wakeUp() calls (default: awake). */
+    var wakeResults = ArrayDeque<Result<Boolean>>()
+    var wakeCalls = 0
+
+    override suspend fun wakeUp(): Result<Boolean> {
+        wakeCalls++
+        if (state.value !is ConnectionState.Connected) return Result.failure(NotConnectedException())
+        return wakeResults.removeFirstOrNull() ?: Result.success(true)
+    }
+
     override suspend fun disconnect() {
         disconnectCount++
         state.value = ConnectionState.Disconnected

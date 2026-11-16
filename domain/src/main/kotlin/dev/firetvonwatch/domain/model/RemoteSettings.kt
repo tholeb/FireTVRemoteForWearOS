@@ -18,6 +18,8 @@ data class RemoteSettings(
     val volumeControlEnabled: Boolean = true,
     /** When false (default), back on the remote goes to the previous page and never closes the app. */
     val swipeBackCloses: Boolean = false,
+    /** Wake the Fire TV each time the remote is opened. */
+    val wakeOnLaunch: Boolean = true,
 ) {
     /** What the bezel does: volume on the media page (if enabled), otherwise the user's choice. */
     fun rotaryModeFor(mediaPage: Boolean): RotaryMode = when {

@@ -26,6 +26,7 @@ phone app, a cloud service or any telemetry.
 | Languages | English and French. Follows the watch language, or set it per app in *Settings → Apps → Fire TV Remote → Language* (Wear OS 4+) |
 | Bezel / crown | Moves up/down, or controls volume (toggle in Settings). Always volume on page 2, unless volume control is off |
 | Settings | Every setting has a short explanation under its name |
+| Wake TV | *Wake TV* (Settings) and **Wake TV on launch** (on by default): sends WAKEUP, checks with `dumpsys power`, and sends POWER only if the Fire TV is verifiably still asleep |
 | Touchpad mode | Swipe = direction, tap = OK, hold = Back. Open it from the bottom-right corner key |
 | Text input | Watch keyboard / voice → focused text field on the TV (ASCII only) |
 | Tile | Back, Play/Pause, Home sent straight from the tile; plus an "open remote" button |
@@ -169,9 +170,9 @@ Build: AGP 9.5.1, Kotlin 2.4.21, Gradle 9.9.1, compile/target SDK 37, min SDK 34
 
 ## Tests
 
-`./gradlew test` runs **80 tests**:
+`./gradlew test` runs **89 tests**:
 
-- **domain (50):**
+- **domain (59):**
   - Command building: key batching, text escaping including `%s`, quotes and shell
     metacharacters, package validation.
   - Probe parsing.
@@ -251,6 +252,8 @@ These can't be checked without hardware:
 | Discovery finds nothing | Use **Enter IP address**. mDNS is often blocked on mesh / enterprise Wi-Fi |
 | Volume / mute keys do nothing | Your TV or soundbar isn't controlled over HDMI-CEC (common on older TVs with IR remotes). Turn off *Settings → Volume buttons* |
 | The app closes when swiping right | Turn off *Settings → Swipe back can close the app* (off by default) |
+| The Fire TV wakes but the TV screen stays black | The Fire TV turns the TV on through HDMI-CEC. Turn it on on both: Fire TV *Settings → Display & Sounds → HDMI CEC Device Control*, and on the TV (Samsung: *Anynet+ (HDMI-CEC)*). Older TVs without CEC have to be switched on with their own remote |
+| "The Fire TV is still asleep" | The Fire TV ignored both WAKEUP and POWER, or is in a deep sleep that drops the network. Wake it once with its remote |
 
 ## Fire OS compatibility
 

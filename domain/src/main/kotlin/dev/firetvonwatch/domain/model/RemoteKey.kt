@@ -21,6 +21,8 @@ enum class RemoteKey(val keyCode: Int) {
     VOLUME_DOWN(25),
     MUTE(164),
     SLEEP(223),
+    /** Toggles power. Only sent when the TV is known to be asleep (see FireTvConnection.wakeUp). */
+    POWER(26),
     WAKE_UP(224),
     ENTER(66),
     DELETE(67),

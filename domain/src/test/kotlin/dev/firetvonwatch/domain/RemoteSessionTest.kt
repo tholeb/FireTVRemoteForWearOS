@@ -207,4 +207,35 @@ class RemoteSessionTest {
         assertEquals("second call is served from the cache", 1, env.connection.appDetailsCalls)
         assertEquals(null, session.appDetails("org.example.missing"))
     }
+
+    @Test fun `opening the remote wakes the TV when enabled`() = runTest {
+        val env = Env(devices = InMemoryDeviceRepository(listOf(tv)))
+        val session = session(env)
+        session.setForeground(true)
+        runCurrent()
+        assertEquals(1, env.connection.wakeCalls)
+    }
+
+    @Test fun `no wake on launch when the setting is off`() = runTest {
+        val env = Env(
+            devices = InMemoryDeviceRepository(listOf(tv)),
+            settings = InMemorySettingsRepository(RemoteSettings(wakeOnLaunch = false)),
+        )
+        val session = session(env)
+        session.setForeground(true)
+        runCurrent()
+        assertEquals(0, env.connection.wakeCalls)
+    }
+
+    @Test fun `manual wake reports a TV that stays asleep`() = runTest {
+        val env = Env(devices = InMemoryDeviceRepository(listOf(tv)))
+        env.connection.wakeResults.addLast(Result.success(false))
+        val session = session(env)
+        val events = mutableListOf<SessionEvent>()
+        backgroundScope.launch { session.events.collect { events += it } }
+        runCurrent()
+        session.wakeTv()
+        runCurrent()
+        assertEquals(listOf(SessionEvent.TvStillAsleep), events)
+    }
 }

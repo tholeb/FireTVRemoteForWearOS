@@ -22,6 +22,12 @@ interface FireTvConnection {
 
     /** Label and icon of an installed app. Needs the on-TV injector; fails without it. */
     suspend fun appDetails(packageName: String): Result<AppDetails>
+    /**
+     * Wakes the Fire TV: WAKEUP, check, then POWER only if it's verifiably still asleep.
+     * Success(true) = awake (or state unknown), Success(false) = still asleep after both keys.
+     */
+    suspend fun wakeUp(): Result<Boolean>
+
     suspend fun disconnect()
 }
 

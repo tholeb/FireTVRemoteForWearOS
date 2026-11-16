@@ -48,6 +48,7 @@ class ShellFireTvConnection(
     private val injectorTimeoutMs: Long = 1_500,
     private val injectorStartTimeoutMs: Long = 8_000,
     private val appInfoTimeoutMs: Long = 5_000,
+    private val wakeSettleMs: Long = 1_000,
     private val nowMs: () -> Long = { System.nanoTime() / 1_000_000 },
 ) : FireTvConnection {
 
@@ -124,6 +125,23 @@ class ShellFireTvConnection(
     override suspend fun listLaunchablePackages(): Result<List<String>> =
         run(measureLatency = false) { ShellCommandBuilder.LIST_LAUNCHABLE_APPS }
             .map { ShellCommandBuilder.parseLaunchablePackages(it.output, KnownApps::isKnown) }
+
+    override suspend fun wakeUp(): Result<Boolean> {
+        if (isAwake().getOrElse { return Result.failure(it) } == true) return Result.success(true)
+        sendKeys(listOf(RemoteKey.WAKE_UP)).onFailure { return Result.failure(it) }
+        delay(wakeSettleMs)
+        // Some Fire OS builds ignore WAKEUP from sleep but react to POWER. POWER toggles, so it's
+        // only sent when the device reports that it's still asleep.
+        if (isAwake().getOrNull() != false) return Result.success(true)
+        sendKeys(listOf(RemoteKey.POWER)).onFailure { return Result.failure(it) }
+        delay(wakeSettleMs)
+        return Result.success(isAwake().getOrNull() != false)
+    }
+
+    /** true/false from `dumpsys power`, null when the state can't be read. */
+    private suspend fun isAwake(): Result<Boolean?> =
+        run(measureLatency = false) { ShellCommandBuilder.POWER_STATE }
+            .map { ShellCommandBuilder.parseAwake(it.output) }
 
     override suspend fun disconnect() = mutex.withLock {
         closeTransportLocked()

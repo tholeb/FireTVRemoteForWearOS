@@ -38,6 +38,7 @@ import kotlinx.coroutines.sync.withLock
 sealed interface SessionEvent {
     data class CommandFailed(val reason: String) : SessionEvent
     data object NoDeviceConfigured : SessionEvent
+    data object TvStillAsleep : SessionEvent
 }
 
 /**
@@ -93,11 +94,25 @@ class RemoteSession(
         foreground = value
         if (value) {
             scope.launch {
-                if (ensureConnected()) scheduleIdleRelease()
+                if (!ensureConnected()) return@launch
+                scheduleIdleRelease()
+                if (settings.settings.first().wakeOnLaunch) wake(reportFailure = false)
             }
         } else {
             scope.launch { release() }
         }
+    }
+
+    /** Wakes the Fire TV (see [FireTvConnection.wakeUp]). */
+    fun wakeTv() {
+        scope.launch { if (ensureConnected()) wake(reportFailure = true) }
+    }
+
+    private suspend fun wake(reportFailure: Boolean) {
+        val awake = connection.wakeUp()
+        scheduleIdleRelease()
+        if (reportFailure && awake.getOrNull() == false) _events.tryEmit(SessionEvent.TvStillAsleep)
+        awake.exceptionOrNull()?.let { if (reportFailure) _events.tryEmit(SessionEvent.CommandFailed(it.message ?: "wake")) }
     }
 
     /** Saves [device], makes it active and connects. Used by the pairing screen. */
