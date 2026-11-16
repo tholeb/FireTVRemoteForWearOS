@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToDownIgnoreConsumed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.rotary.onPreRotaryScrollEvent
 import androidx.compose.ui.platform.LocalContext
@@ -52,12 +53,21 @@ private const val MIN_TIMEOUT_MS = 5_000L
 private const val MAX_TIMEOUT_MS = 10 * 60_000L
 
 /**
+ * After this long without any touch, bezel or key, the remote stops holding the screen on and
+ * the watch's own timeout turns it off (or to ambient). The app then stops, which releases
+ * the TV connection and Wi-Fi.
+ */
+const val KEEP_ON_MAX_IDLE_MS = 5 * 60_000L
+
+/**
  * Wraps the app. While [active] (remote or touchpad showing) and enabled in [settings]:
- * - the screen never times out (FLAG_KEEP_SCREEN_ON),
+ * - the screen stays on (FLAG_KEEP_SCREEN_ON),
  * - after the watch's screen-timeout delay without any touch, bezel or key, the UI is dimmed
  *   to the chosen brightness,
+ * - after [releaseAfterMs] without interaction the screen is no longer held on, so the watch
+ *   turns it off as usual,
  * - the first touch or bezel turn only brightens it again (it isn't passed on), then the
- *   delay starts over.
+ *   delays start over.
  * Elsewhere the watch's normal timeout applies.
  */
 @Composable
@@ -66,6 +76,8 @@ fun RemoteScreenAwake(
     settings: RemoteSettings,
     /** Dimming delay; null = the watch's screen timeout, re-read each time the app resumes. */
     timeoutOverrideMs: Long? = null,
+    /** Idle time after which the screen is no longer kept on. */
+    releaseAfterMs: Long = KEEP_ON_MAX_IDLE_MS,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val context = LocalContext.current
@@ -77,32 +89,37 @@ fun RemoteScreenAwake(
     val timeoutMs = timeoutOverrideMs ?: systemTimeoutMs
 
     val enabled = active && settings.keepScreenOn
-    val window = LocalActivity.current?.window
-    DisposableEffect(window, enabled) {
-        if (enabled) window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        onDispose { window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
-    }
-
     var interactions by remember { mutableIntStateOf(0) }
     var dimmed by remember { mutableStateOf(false) }
-    LaunchedEffect(enabled, interactions, timeoutMs) {
+    var keepOn by remember { mutableStateOf(enabled) }
+    LaunchedEffect(enabled, interactions, timeoutMs, releaseAfterMs) {
         dimmed = false
+        keepOn = enabled
         if (enabled) {
             delay(timeoutMs)
             dimmed = true
+            delay((releaseAfterMs - timeoutMs).coerceAtLeast(0))
+            keepOn = false
         }
+    }
+
+    val window = LocalActivity.current?.window
+    DisposableEffect(window, keepOn) {
+        if (keepOn) window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        onDispose { window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
     }
     val wake = { interactions++ }
 
     Box(
         Modifier
             .fillMaxSize()
-            // Watch every touch before the UI gets it, without consuming it.
+            // Watch every touch-down before the UI gets it, without consuming it. Moves are
+            // ignored: restarting the timers on each of them is wasted work during a swipe.
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
-                        awaitPointerEvent(PointerEventPass.Initial)
-                        wake()
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        if (event.changes.any { it.changedToDownIgnoreConsumed() }) wake()
                     }
                 }
             }

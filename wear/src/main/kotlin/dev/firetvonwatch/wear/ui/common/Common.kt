@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -88,13 +89,6 @@ fun ConnectionRing(state: ConnectionState, modifier: Modifier = Modifier) {
     val color = state.ringColor()
     val busy = state is ConnectionState.Connecting || state is ConnectionState.AwaitingAuthorization
     val description = state.label()
-    val transition = rememberInfiniteTransition(label = "ring")
-    val rotation by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(1_200, easing = LinearEasing), RepeatMode.Restart),
-        label = "rotation",
-    )
     // The full-screen ring must not carry semantics: a node covering the whole screen on top
     // of the buttons hides them from TalkBack. The state is announced by a tiny live region.
     Box(
@@ -103,18 +97,42 @@ fun ConnectionRing(state: ConnectionState, modifier: Modifier = Modifier) {
             liveRegion = LiveRegionMode.Polite
         },
     )
-    Canvas(modifier.fillMaxSize()) {
-        val strokePx = 3.dp.toPx()
-        val inset = strokePx / 2 + 1.dp.toPx()
-        val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
-        val topLeft = Offset(inset, inset)
-        if (busy) {
-            drawArc(color.copy(alpha = 0.25f), 0f, 360f, false, topLeft, arcSize, style = Stroke(strokePx))
-            drawArc(color, rotation - 90f, 90f, false, topLeft, arcSize, style = Stroke(strokePx))
-        } else {
-            drawArc(color.copy(alpha = if (state is ConnectionState.Disconnected) 0.5f else 0.9f), 0f, 360f, false, topLeft, arcSize, style = Stroke(strokePx))
+    if (busy) {
+        BusyRing(color, modifier)
+    } else {
+        // Static: no animation, so no frame is drawn while nothing changes.
+        Canvas(modifier.fillMaxSize()) {
+            val (topLeft, arcSize, stroke) = ringGeometry()
+            val alpha = if (state is ConnectionState.Disconnected) 0.5f else 0.9f
+            drawArc(color.copy(alpha = alpha), 0f, 360f, false, topLeft, arcSize, style = stroke)
         }
     }
+}
+
+/**
+ * Spinning arc. Kept in its own composable so the infinite animation (which asks for a frame
+ * on every vsync) only exists while connecting, not for as long as the remote is showing.
+ */
+@Composable
+private fun BusyRing(color: Color, modifier: Modifier) {
+    val transition = rememberInfiniteTransition(label = "ring")
+    val rotation by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(1_200, easing = LinearEasing), RepeatMode.Restart),
+        label = "rotation",
+    )
+    Canvas(modifier.fillMaxSize()) {
+        val (topLeft, arcSize, stroke) = ringGeometry()
+        drawArc(color.copy(alpha = 0.25f), 0f, 360f, false, topLeft, arcSize, style = stroke)
+        drawArc(color, rotation - 90f, 90f, false, topLeft, arcSize, style = stroke)
+    }
+}
+
+private fun DrawScope.ringGeometry(): Triple<Offset, Size, Stroke> {
+    val strokePx = 3.dp.toPx()
+    val inset = strokePx / 2 + 1.dp.toPx()
+    return Triple(Offset(inset, inset), Size(size.width - inset * 2, size.height - inset * 2), Stroke(strokePx))
 }
 
 @Composable

@@ -9,6 +9,7 @@ import dev.firetvonwatch.domain.model.FireTvDevice
 import dev.firetvonwatch.domain.model.KnownApps
 import dev.firetvonwatch.domain.model.RemoteCommand
 import dev.firetvonwatch.domain.model.RemoteKey
+import dev.firetvonwatch.domain.model.RemoteSettings
 import dev.firetvonwatch.domain.model.TvApp
 import dev.firetvonwatch.domain.protocol.TransportException
 import dev.firetvonwatch.domain.model.AppDetails
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -45,7 +47,8 @@ sealed interface SessionEvent {
  * Keeps the remote's connection alive. It:
  * - queues commands and sends bursts of key presses (fast rotary turns) in one call,
  * - connects on demand and retries once if the connection dropped,
- * - releases the connection and Wi-Fi after the idle timeout, or when the app leaves the foreground,
+ * - releases the connection and Wi-Fi after the idle timeout, or when the app leaves the foreground;
+ *   uses from the background (the tile) keep them at most [BACKGROUND_LINGER_MS],
  * - reconnects automatically with backoff while in the foreground, for errors that may clear on their own.
  */
 class RemoteSession(
@@ -65,8 +68,14 @@ class RemoteSession(
 
     @Volatile private var foreground = false
     private var networkHeld = false
-    private var idleJob: Job? = null
     private var reconnectJob: Job? = null
+
+    /** One signal per activity; a single loop turns them into the idle release (see [idleLoop]). */
+    private val activity = Channel<Unit>(Channel.CONFLATED)
+
+    /** Latest settings, so the idle timer doesn't read storage on every key press. */
+    private val currentSettings: StateFlow<RemoteSettings?> =
+        settings.settings.stateIn(scope, SharingStarted.Eagerly, null)
 
     /** The connection state, or a NO_WIFI failure if Wi-Fi could not be obtained. */
     val state: StateFlow<ConnectionState> =
@@ -78,6 +87,7 @@ class RemoteSession(
 
     init {
         scope.launch { processQueue() }
+        scope.launch { idleLoop() }
         scope.launch {
             devices.activeDevice.distinctUntilChanged { a, b -> a?.id == b?.id }.collect { onActiveDeviceChanged(it) }
         }
@@ -209,23 +219,31 @@ class RemoteSession(
         result.isSuccess
     }
 
+    /** Restarts the idle timer. Cheap: called after every command. */
     private fun scheduleIdleRelease() {
-        idleJob?.cancel()
-        idleJob = scope.launch {
-            val seconds = settings.settings.first().idleTimeoutSeconds
-            delay(seconds * 1_000L)
-            lifecycle.withLock {
-                idleJob = null
-                releaseLocked(cancelIdle = false)
-            }
+        activity.trySend(Unit)
+    }
+
+    /**
+     * Waits for activity, then releases once no activity came for the idle timeout: the
+     * user's setting in the foreground, at most [BACKGROUND_LINGER_MS] otherwise (a tile tap
+     * shouldn't hold Wi-Fi for minutes).
+     */
+    private suspend fun idleLoop() {
+        while (true) {
+            activity.receive()
+            while (withTimeoutOrNull(idleTimeoutMs()) { activity.receive() } != null) Unit
+            lifecycle.withLock { releaseLocked() }
         }
     }
 
-    private suspend fun releaseLocked(cancelIdle: Boolean = true) {
-        if (cancelIdle) {
-            idleJob?.cancel()
-            idleJob = null
-        }
+    private suspend fun idleTimeoutMs(): Long {
+        val seconds = (currentSettings.value ?: settings.settings.first()).idleTimeoutSeconds
+        val ms = seconds * 1_000L
+        return if (foreground) ms else minOf(ms, BACKGROUND_LINGER_MS)
+    }
+
+    private suspend fun releaseLocked() {
         reconnectJob?.cancel()
         reconnectJob = null
         connection.disconnect()
@@ -270,6 +288,9 @@ class RemoteSession(
 
     companion object {
         private const val MAX_DRAIN = 32
+
+        /** Longest time a connection made from the background (the tile) is kept. */
+        const val BACKGROUND_LINGER_MS = 15_000L
         private val AUTO_RETRY_ERRORS = setOf(ConnectionError.IO, ConnectionError.UNREACHABLE)
 
         /** Groups runs of key presses so each run becomes one shell call. Order is kept. */

@@ -42,6 +42,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
+import dev.firetvonwatch.wear.ui.common.KEEP_ON_MAX_IDLE_MS
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -253,6 +254,7 @@ class RemoteUiTest {
         compose.onNodeWithTag("dim").assertExists()
 
         compose.onNodeWithTag("ok").performClick() // lands on the dim layer
+        ShadowLooper.idleMainLooper() // deliver the touch (nothing else drives the looper while idle)
         compose.mainClock.advanceTimeBy(1_000)
         compose.onNodeWithTag("dim").assertDoesNotExist()
         ShadowLooper.idleMainLooper()
@@ -262,6 +264,24 @@ class RemoteUiTest {
         compose.mainClock.advanceTimeBy(500)
         eventually { connection.sentKeys.isNotEmpty() }
         assertEquals(listOf(RemoteKey.SELECT), connection.sentKeys)
+    }
+
+    @Test fun screenIsNoLongerHeldOnAfterFiveIdleMinutesAndATouchHoldsItAgain() {
+        compose.mainClock.autoAdvance = false
+        compose.setContent { FireTvTheme { FireTvApp(deps) } }
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.onNodeWithTag("ok").assertIsDisplayed()
+        assertTrue(keepsScreenOn())
+
+        compose.mainClock.advanceTimeBy(KEEP_ON_MAX_IDLE_MS - 5_000)
+        assertTrue("still held just before the limit", keepsScreenOn())
+        compose.mainClock.advanceTimeBy(10_000)
+        assertFalse("released after 5 idle minutes", keepsScreenOn())
+
+        compose.onNodeWithTag("ok").performClick()
+        ShadowLooper.idleMainLooper()
+        compose.mainClock.advanceTimeBy(500)
+        assertTrue("a touch holds the screen on again", keepsScreenOn())
     }
 
     @Test fun noDimmingAndNormalTimeoutWhenTheSettingIsOff() {

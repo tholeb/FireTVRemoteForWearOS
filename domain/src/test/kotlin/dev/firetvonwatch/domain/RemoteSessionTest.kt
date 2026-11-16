@@ -70,6 +70,7 @@ class RemoteSessionTest {
             settings = InMemorySettingsRepository(RemoteSettings(idleTimeoutSeconds = 30)),
         )
         val session = session(env)
+        session.setForeground(true)
         session.press(RemoteKey.HOME)
         runCurrent()
         advanceTimeBy(29_000); runCurrent()
@@ -79,6 +80,52 @@ class RemoteSessionTest {
         advanceTimeBy(29_000); runCurrent()
         assertTrue(env.connection.state.value is ConnectionState.Connected)
         advanceTimeBy(2_000); runCurrent()
+        assertEquals(ConnectionState.Disconnected, env.connection.state.value)
+        assertEquals(0, env.network.held)
+    }
+
+    @Test fun `background use keeps the connection only briefly`() = runTest {
+        val env = Env(
+            devices = InMemoryDeviceRepository(listOf(tv)),
+            settings = InMemorySettingsRepository(RemoteSettings(idleTimeoutSeconds = 300)),
+        )
+        val session = session(env)
+        session.press(RemoteKey.PLAY_PAUSE) // e.g. from the tile, app not open
+        runCurrent()
+        advanceTimeBy(RemoteSession.BACKGROUND_LINGER_MS - 1_000); runCurrent()
+        assertTrue(env.connection.state.value is ConnectionState.Connected)
+        advanceTimeBy(2_000); runCurrent()
+        assertEquals(ConnectionState.Disconnected, env.connection.state.value)
+        assertEquals(0, env.network.held)
+    }
+
+    @Test fun `background linger never exceeds a shorter idle setting`() = runTest {
+        val env = Env(
+            devices = InMemoryDeviceRepository(listOf(tv)),
+            settings = InMemorySettingsRepository(RemoteSettings(idleTimeoutSeconds = 5)),
+        )
+        val session = session(env)
+        session.press(RemoteKey.HOME)
+        runCurrent()
+        advanceTimeBy(5_001); runCurrent()
+        assertEquals(ConnectionState.Disconnected, env.connection.state.value)
+    }
+
+    @Test fun `many presses keep one idle deadline from the last press`() = runTest {
+        val env = Env(
+            devices = InMemoryDeviceRepository(listOf(tv)),
+            settings = InMemorySettingsRepository(RemoteSettings(idleTimeoutSeconds = 30)),
+        )
+        val session = session(env)
+        session.setForeground(true)
+        runCurrent()
+        repeat(10) {
+            session.press(RemoteKey.DPAD_DOWN)
+            runCurrent()
+            advanceTimeBy(10_000); runCurrent()
+        }
+        assertTrue(env.connection.state.value is ConnectionState.Connected)
+        advanceTimeBy(20_001); runCurrent()
         assertEquals(ConnectionState.Disconnected, env.connection.state.value)
         assertEquals(0, env.network.held)
     }
