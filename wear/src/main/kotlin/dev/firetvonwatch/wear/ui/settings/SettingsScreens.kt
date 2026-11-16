@@ -1,5 +1,6 @@
 package dev.firetvonwatch.wear.ui.settings
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -10,7 +11,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -27,6 +30,7 @@ import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
+import androidx.wear.compose.material3.Slider
 import androidx.wear.compose.material3.SwitchButton
 import androidx.wear.compose.material3.Text
 import dev.firetvonwatch.domain.model.ConnectionState
@@ -137,6 +141,31 @@ fun SettingsScreen(vm: RemoteViewModel, ui: RemoteUiState, onDevices: () -> Unit
                     label = R.string.settings_wake_on_launch,
                     explanation = R.string.settings_wake_on_launch_desc,
                 )
+            }
+            item {
+                SettingSwitch(
+                    checked = settings.keepScreenOn,
+                    onChange = { on -> vm.updateSettings { it.copy(keepScreenOn = on) } },
+                    label = R.string.settings_keep_screen_on,
+                    explanation = R.string.settings_keep_screen_on_desc,
+                )
+            }
+            if (settings.keepScreenOn) {
+                item {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            stringResource(R.string.settings_brightness_value, settings.remoteBrightnessPercent),
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                        Slider(
+                            value = settings.remoteBrightnessPercent,
+                            onValueChange = { percent -> vm.updateSettings { it.copy(remoteBrightnessPercent = percent) } },
+                            valueProgression = RemoteSettings.REMOTE_BRIGHTNESS_RANGE step 10,
+                            modifier = Modifier.fillMaxWidth().testTag("brightness"),
+                        )
+                        Note(stringResource(R.string.settings_brightness_desc))
+                    }
+                }
             }
             item {
                 SettingSwitch(

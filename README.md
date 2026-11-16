@@ -22,11 +22,12 @@ phone app, a cloud service or any telemetry.
 | D-pad, OK, Back, Home, Menu | Page 1. Shortcut keys sit in the grid corners |
 | Play/Pause, Rewind, Fast-forward, Volume ±, Mute | Page 2. Volume only works over HDMI-CEC (see limitations). If your TV's sound is IR-only, turn off **Volume buttons** in Settings: the volume keys disappear and the bezel never changes the volume |
 | Back gesture | Back (edge swipe or the watch's Back button) goes to the previous page and never closes the remote; leave with the Home button. **Swipe back can close the app** in Settings restores the usual behaviour |
-| App launcher | Page 3. User-installed apps plus popular preinstalled streaming apps (Netflix, Prime Video, YouTube…); other system apps are hidden. Real icons and names (in the TV's language), read from the TV and cached on the watch. Long-press to pin a favourite |
+| App launcher | Page 3. User-installed apps plus popular preinstalled streaming apps (Netflix, Prime Video, YouTube…); other system apps are hidden. Real icons and names (in the TV's language), read from the TV and cached on the watch. Both favourites and other apps are sorted by name. Long-press to pin a favourite |
 | Languages | English and French. Follows the watch language, or set it per app in *Settings → Apps → Fire TV Remote → Language* (Wear OS 4+) |
 | Bezel / crown | Moves up/down, or controls volume (toggle in Settings). Always volume on page 2, unless volume control is off |
 | Settings | Every setting has a short explanation under its name |
 | Wake TV | *Wake TV* (Settings) and **Wake TV on launch** (on by default): sends WAKEUP, checks with `dumpsys power`, and sends POWER only if the Fire TV is verifiably still asleep |
+| Screen | **Keep screen on in the remote** (on by default): while the remote or touchpad shows, the screen doesn't turn off. After the **watch's own screen timeout** it dims to **Dimmed brightness** (10-100 %, default 30 %) by darkening the picture, which saves power on the AMOLED screen and works on every watch. The first touch or bezel turn only brightens it again. Other screens keep the normal timeout |
 | Touchpad mode | Swipe = direction, tap = OK, hold = Back. Open it from the bottom-right corner key |
 | Text input | Watch keyboard / voice → focused text field on the TV (ASCII only) |
 | Tile | Back, Play/Pause, Home sent straight from the tile; plus an "open remote" button |
@@ -170,7 +171,7 @@ Build: AGP 9.5.1, Kotlin 2.4.21, Gradle 9.9.1, compile/target SDK 37, min SDK 34
 
 ## Tests
 
-`./gradlew test` runs **89 tests**:
+`./gradlew test` runs **95 tests**:
 
 - **domain (59):**
   - Command building: key batching, text escaping including `%s`, quotes and shell
@@ -189,7 +190,8 @@ Build: AGP 9.5.1, Kotlin 2.4.21, Gradle 9.9.1, compile/target SDK 37, min SDK 34
   - Subnet candidates.
   - Legacy (pre-Android 7) shell: exit-code marker parsing, pty echo filtering.
   - App label/icon disk cache.
-- **wear (19):**
+- **wear (24):**
+  - Screen: kept on only on the remote and touchpad; dims after the watch timeout; the waking touch presses nothing.
   - Rotary step accumulation, gesture classification, tile actions.
   - Robolectric Compose tests of the real screens against the fake Fire TV: OK sends
     SELECT; labelled keys; swipe to the media page; refused error → guidance → retry;

@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 import java.net.Inet4Address
-import java.util.concurrent.Executors
+import java.util.concurrent.Executor
 
 /**
  * Finds Fire TVs through mDNS. Fire OS advertises Amazon's "Whisperplay" service
@@ -26,8 +26,12 @@ class NsdDeviceDiscovery(
     private val nsd = context.getSystemService(NsdManager::class.java)
 
     override fun discover(): Flow<DiscoveredDevice> = callbackFlow {
-        val executor = Executors.newSingleThreadExecutor()
+        // NsdManager keeps delivering callbacks (e.g. "unregistered") after discovery stops. A
+        // shut-down executor would reject them and crash the app on the system's
+        // ConnectivityThread, so run them inline: they only hand a result to the flow.
+        val executor = Executor { it.run() }
         val infoCallbacks = mutableListOf<NsdManager.ServiceInfoCallback>()
+        var closed = false
 
         val listener = object : NsdManager.DiscoveryListener {
             override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) { close() }
@@ -42,11 +46,16 @@ class NsdDeviceDiscovery(
                     override fun onServiceLost() = Unit
                     override fun onServiceInfoCallbackUnregistered() = Unit
                     override fun onServiceUpdated(info: NsdServiceInfo) {
-                        val host = info.hostAddresses.firstOrNull { it is Inet4Address }?.hostAddress ?: return
-                        trySend(DiscoveredDevice(friendlyName(info), host, DEFAULT_ADB_PORT, DiscoveredDevice.Source.MDNS))
+                        runCatching {
+                            val host = info.hostAddresses.firstOrNull { it is Inet4Address }?.hostAddress ?: return
+                            trySend(DiscoveredDevice(friendlyName(info), host, DEFAULT_ADB_PORT, DiscoveredDevice.Source.MDNS))
+                        }
                     }
                 }
-                synchronized(infoCallbacks) { infoCallbacks += cb }
+                synchronized(infoCallbacks) {
+                    if (closed) return // found after we stopped: don't register what we can't unregister
+                    infoCallbacks += cb
+                }
                 runCatching { nsd.registerServiceInfoCallback(serviceInfo, executor, cb) }
             }
         }
@@ -59,8 +68,10 @@ class NsdDeviceDiscovery(
         }
         awaitClose {
             runCatching { nsd.stopServiceDiscovery(listener) }
-            synchronized(infoCallbacks) { infoCallbacks.forEach { runCatching { nsd.unregisterServiceInfoCallback(it) } } }
-            executor.shutdown()
+            synchronized(infoCallbacks) {
+                closed = true
+                infoCallbacks.forEach { runCatching { nsd.unregisterServiceInfoCallback(it) } }
+            }
         }
     }
 

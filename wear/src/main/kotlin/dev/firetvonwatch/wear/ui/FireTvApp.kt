@@ -27,6 +27,7 @@ import dev.firetvonwatch.domain.session.SessionEvent
 import dev.firetvonwatch.wear.AppDependencies
 import dev.firetvonwatch.wear.R
 import dev.firetvonwatch.wear.input.rememberLocalNetworkPermission
+import dev.firetvonwatch.wear.ui.common.RemoteScreenAwake
 import dev.firetvonwatch.wear.ui.remote.KeyboardScreen
 import dev.firetvonwatch.wear.ui.remote.RemoteScreen
 import dev.firetvonwatch.wear.ui.remote.TouchpadScreen
@@ -94,41 +95,44 @@ fun FireTvApp(deps: AppDependencies) {
             if (devices.isEmpty() && route != null && route !in Routes.SETUP) nav.resetTo(Routes.ONBOARDING)
         }
 
-        SwipeDismissableNavHost(
-            navController = nav,
-            startDestination = start,
-            // The touchpad uses horizontal swipes itself; leave it with the close button or hardware back.
-            userSwipeEnabled = route != Routes.TOUCHPAD,
-        ) {
-            composable(Routes.ONBOARDING) {
-                OnboardingScreen(
-                    permission = permission,
-                    hasDevices = devices.isNotEmpty(),
-                    onFindTv = { nav.navigate(Routes.DISCOVER) },
-                    onOpenRemote = { nav.resetTo(Routes.REMOTE) },
-                )
-            }
-            composable(Routes.DISCOVER) {
-                DiscoverScreen(setupVm, permission, onSelected = { nav.navigate(Routes.PAIR) })
-            }
-            composable(Routes.PAIR) {
-                PairScreen(setupVm, remoteVm, ui, onDone = { nav.resetTo(Routes.REMOTE) })
-            }
-            composable(Routes.REMOTE) {
-                RemoteScreen(
-                    vm = remoteVm,
-                    ui = ui,
-                    onTouchpad = { nav.navigate(Routes.TOUCHPAD) },
-                    onKeyboard = { nav.navigate(Routes.KEYBOARD) },
-                    onSettings = { nav.navigate(Routes.SETTINGS) },
-                    onDevices = { nav.navigate(Routes.DEVICES) },
-                )
-            }
-            composable(Routes.TOUCHPAD) { TouchpadScreen(remoteVm, ui, onClose = { nav.popBackStack() }) }
-            composable(Routes.KEYBOARD) { KeyboardScreen(remoteVm, ui) }
-            composable(Routes.SETTINGS) { SettingsScreen(remoteVm, ui, onDevices = { nav.navigate(Routes.DEVICES) }) }
-            composable(Routes.DEVICES) {
-                DevicesScreen(remoteVm, ui, onAdd = { nav.navigate(Routes.DISCOVER) }, onSelected = { nav.popBackStack() })
+        // Remote and touchpad: screen stays on and dims after the watch's screen timeout (setting).
+        RemoteScreenAwake(active = route == Routes.REMOTE || route == Routes.TOUCHPAD, settings = ui.settings) {
+            SwipeDismissableNavHost(
+                navController = nav,
+                startDestination = start,
+                // The touchpad uses horizontal swipes itself; leave it with the close button or hardware back.
+                userSwipeEnabled = route != Routes.TOUCHPAD,
+            ) {
+                composable(Routes.ONBOARDING) {
+                    OnboardingScreen(
+                        permission = permission,
+                        hasDevices = devices.isNotEmpty(),
+                        onFindTv = { nav.navigate(Routes.DISCOVER) },
+                        onOpenRemote = { nav.resetTo(Routes.REMOTE) },
+                    )
+                }
+                composable(Routes.DISCOVER) {
+                    DiscoverScreen(setupVm, permission, onSelected = { nav.navigate(Routes.PAIR) })
+                }
+                composable(Routes.PAIR) {
+                    PairScreen(setupVm, remoteVm, ui, onDone = { nav.resetTo(Routes.REMOTE) })
+                }
+                composable(Routes.REMOTE) {
+                    RemoteScreen(
+                        vm = remoteVm,
+                        ui = ui,
+                        onTouchpad = { nav.navigate(Routes.TOUCHPAD) },
+                        onKeyboard = { nav.navigate(Routes.KEYBOARD) },
+                        onSettings = { nav.navigate(Routes.SETTINGS) },
+                        onDevices = { nav.navigate(Routes.DEVICES) },
+                    )
+                }
+                composable(Routes.TOUCHPAD) { TouchpadScreen(remoteVm, ui, onClose = { nav.popBackStack() }) }
+                composable(Routes.KEYBOARD) { KeyboardScreen(remoteVm, ui) }
+                composable(Routes.SETTINGS) { SettingsScreen(remoteVm, ui, onDevices = { nav.navigate(Routes.DEVICES) }) }
+                composable(Routes.DEVICES) {
+                    DevicesScreen(remoteVm, ui, onAdd = { nav.navigate(Routes.DISCOVER) }, onSelected = { nav.popBackStack() })
+                }
             }
         }
     }

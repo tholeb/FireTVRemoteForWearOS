@@ -20,6 +20,10 @@ data class RemoteSettings(
     val swipeBackCloses: Boolean = false,
     /** Wake the Fire TV each time the remote is opened. */
     val wakeOnLaunch: Boolean = true,
+    /** Keep the watch screen on while the remote (or touchpad) is showing. */
+    val keepScreenOn: Boolean = true,
+    /** Screen brightness while the remote keeps the screen on, in percent (10-100). */
+    val remoteBrightnessPercent: Int = DEFAULT_REMOTE_BRIGHTNESS,
 ) {
     /** What the bezel does: volume on the media page (if enabled), otherwise the user's choice. */
     fun rotaryModeFor(mediaPage: Boolean): RotaryMode = when {
@@ -30,6 +34,8 @@ data class RemoteSettings(
 
     companion object {
         const val DEFAULT_IDLE_TIMEOUT_SECONDS = 60
+        const val DEFAULT_REMOTE_BRIGHTNESS = 30
+        val REMOTE_BRIGHTNESS_RANGE = 10..100
         val IDLE_TIMEOUT_CHOICES = listOf(30, 60, 120, 300)
     }
 }

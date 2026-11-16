@@ -119,4 +119,8 @@
     <string name="settings_wake_on_launch">Réveiller la TV à l\'ouverture</string>
     <string name="settings_wake_on_launch_desc">Réveille la Fire TV à chaque ouverture de la télécommande.</string>
     <string name="tv_still_asleep">La Fire TV est toujours en veille.</string>
+    <string name="settings_keep_screen_on">Écran toujours allumé dans la télécommande</string>
+    <string name="settings_keep_screen_on_desc">Tant que la télécommande ou le pavé tactile est affiché, l\'écran ne s\'éteint pas : après le délai de mise en veille de la montre, il s\'assombrit. Touchez l\'écran ou tournez la lunette pour le rallumer. Consomme plus de batterie.</string>
+    <string name="settings_brightness_value">Luminosité assombrie : %1$d %%</string>
+    <string name="settings_brightness_desc">Luminosité de la télécommande une fois assombrie.</string>
 </resources>

@@ -63,4 +63,32 @@ class InputLogicTest {
         assertEquals(30, nextIdleTimeout(300))
         assertEquals(30, nextIdleTimeout(17))
     }
+
+    @Test fun `dim layer strength follows the brightness setting`() {
+        val s = dev.firetvonwatch.domain.model.RemoteSettings(remoteBrightnessPercent = 30)
+        assertEquals(0.7f, dev.firetvonwatch.wear.ui.common.dimAlpha(s), 0.001f)
+        assertEquals(0f, dev.firetvonwatch.wear.ui.common.dimAlpha(s.copy(remoteBrightnessPercent = 100)), 0.001f)
+        assertEquals(0.9f, dev.firetvonwatch.wear.ui.common.dimAlpha(s.copy(remoteBrightnessPercent = 1)), 0.001f)
+    }
+
+    @Test fun `apps are sorted by displayed name, ignoring case and accents`() {
+        val labels = mapOf(
+            "com.netflix.ninja" to "Netflix",
+            "org.example.e" to "éditions TV",
+            "org.example.a" to "apple TV",
+            "com.amazon.firebat" to "Prime Video",
+            "org.example.z" to "Zattoo",
+            "org.example.e2" to "Editions",
+        )
+        val sorted = dev.firetvonwatch.wear.ui.remote.sortedByName(labels.keys.toList()) { labels.getValue(it) }
+        assertEquals(listOf("apple TV", "Editions", "éditions TV", "Netflix", "Prime Video", "Zattoo"), sorted.map { labels.getValue(it) })
+    }
+
+    @Test fun `displayed name prefers the TV label`() {
+        assertEquals("Netflix", dev.firetvonwatch.wear.ui.remote.appLabel("com.netflix.ninja", null))
+        assertEquals(
+            "Netflix FR",
+            dev.firetvonwatch.wear.ui.remote.appLabel("com.netflix.ninja", dev.firetvonwatch.domain.model.AppDetails("com.netflix.ninja", "Netflix FR", null)),
+        )
+    }
 }

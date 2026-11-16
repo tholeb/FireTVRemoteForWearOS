@@ -12,6 +12,8 @@ class RemoteSettingsTest {
         val s = RemoteSettings()
         assertTrue(s.volumeControlEnabled)
         assertFalse(s.swipeBackCloses)
+        assertTrue(s.keepScreenOn)
+        assertEquals(30, s.remoteBrightnessPercent)
     }
 
     @Test fun `bezel mode depends on page and volume setting`() {

@@ -35,6 +35,8 @@ private object Keys {
     val volumeControl = booleanPreferencesKey("volume_control")
     val swipeBackCloses = booleanPreferencesKey("swipe_back_closes")
     val wakeOnLaunch = booleanPreferencesKey("wake_on_launch")
+    val keepScreenOn = booleanPreferencesKey("keep_screen_on")
+    val remoteBrightness = intPreferencesKey("remote_brightness")
 }
 
 class DataStoreDeviceRepository(private val store: DataStore<Preferences>) : DeviceRepository {
@@ -95,6 +97,8 @@ class DataStoreSettingsRepository(private val store: DataStore<Preferences>) : S
             prefs[Keys.volumeControl] = next.volumeControlEnabled
             prefs[Keys.swipeBackCloses] = next.swipeBackCloses
             prefs[Keys.wakeOnLaunch] = next.wakeOnLaunch
+            prefs[Keys.keepScreenOn] = next.keepScreenOn
+            prefs[Keys.remoteBrightness] = next.remoteBrightnessPercent.coerceIn(RemoteSettings.REMOTE_BRIGHTNESS_RANGE)
         }
     }
 
@@ -109,6 +113,9 @@ class DataStoreSettingsRepository(private val store: DataStore<Preferences>) : S
             volumeControlEnabled = this[Keys.volumeControl] ?: defaults.volumeControlEnabled,
             swipeBackCloses = this[Keys.swipeBackCloses] ?: defaults.swipeBackCloses,
             wakeOnLaunch = this[Keys.wakeOnLaunch] ?: defaults.wakeOnLaunch,
+            keepScreenOn = this[Keys.keepScreenOn] ?: defaults.keepScreenOn,
+            remoteBrightnessPercent = (this[Keys.remoteBrightness] ?: defaults.remoteBrightnessPercent)
+                .coerceIn(RemoteSettings.REMOTE_BRIGHTNESS_RANGE),
         )
     }
 }

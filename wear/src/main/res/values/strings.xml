@@ -124,4 +124,8 @@
     <string name="settings_wake_on_launch">Wake TV on launch</string>
     <string name="settings_wake_on_launch_desc">Wakes the Fire TV each time you open the remote.</string>
     <string name="tv_still_asleep">The Fire TV is still asleep.</string>
+    <string name="settings_keep_screen_on">Keep screen on in the remote</string>
+    <string name="settings_keep_screen_on_desc">While the remote or touchpad is showing, the screen doesn\'t turn off: after the watch\'s screen timeout it dims instead. Touch the screen or turn the bezel to brighten it. Uses more battery.</string>
+    <string name="settings_brightness_value">Dimmed brightness: %1$d %%</string>
+    <string name="settings_brightness_desc">How bright the remote stays once dimmed.</string>
 </resources>

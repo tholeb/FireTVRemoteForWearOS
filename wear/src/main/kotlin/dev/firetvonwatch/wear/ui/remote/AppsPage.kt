@@ -1,6 +1,7 @@
 package dev.firetvonwatch.wear.ui.remote
 
 import android.graphics.BitmapFactory
+import java.text.Collator
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -47,6 +48,9 @@ fun AppsPage(vm: RemoteViewModel, ui: RemoteUiState, isCurrent: Boolean, haptics
     val details by vm.appDetails.collectAsStateWithLifecycle()
     val favorites = ui.settings.favoriteApps
     val listState = rememberTransformingLazyColumnState()
+    // Both sections are sorted by the name shown (the TV's label once loaded).
+    val label: (String) -> String = { pkg -> appLabel(pkg, details[pkg]) }
+    val sortedFavorites = remember(favorites, details) { sortedByName(favorites, label) }
 
     LaunchedEffect(isCurrent) {
         if (isCurrent && apps is AppsState.Idle) vm.loadApps()
@@ -69,7 +73,7 @@ fun AppsPage(vm: RemoteViewModel, ui: RemoteUiState, isCurrent: Boolean, haptics
             item { ListHeader { Text(stringResource(R.string.apps_title)) } }
             if (favorites.isNotEmpty()) {
                 item { ListHeader { Text(stringResource(R.string.apps_favorites), style = MaterialTheme.typography.labelSmall) } }
-                items(favorites) { pkg ->
+                items(sortedFavorites) { pkg ->
                     AppButton(pkg, details[pkg], favorite = true, onClick = launch, onLongClick = toggle)
                 }
                 item { ListHeader { Text(stringResource(R.string.apps_all), style = MaterialTheme.typography.labelSmall) } }
@@ -90,9 +94,9 @@ fun AppsPage(vm: RemoteViewModel, ui: RemoteUiState, isCurrent: Boolean, haptics
                     item { Button(onClick = vm::loadApps) { Text(stringResource(R.string.retry)) } }
                 }
                 is AppsState.Loaded -> {
-                    val others = state.apps.filterNot { it.packageName in favorites }
-                    items(others) { app ->
-                        AppButton(app.packageName, details[app.packageName], favorite = false, onClick = launch, onLongClick = toggle)
+                    val others = sortedByName(state.apps.map { it.packageName }.filterNot { it in favorites }, label)
+                    items(others) { pkg ->
+                        AppButton(pkg, details[pkg], favorite = false, onClick = launch, onLongClick = toggle)
                     }
                     if (others.isEmpty() && favorites.isEmpty()) {
                         item { Text(stringResource(R.string.apps_none), style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center) }
@@ -113,6 +117,18 @@ fun AppsPage(vm: RemoteViewModel, ui: RemoteUiState, isCurrent: Boolean, haptics
     }
 }
 
+/** Name shown for an app: the TV's label once loaded, otherwise a built-in or derived name. */
+internal fun appLabel(packageName: String, details: AppDetails?): String = details?.label ?: KnownApps.labelFor(packageName)
+
+/**
+ * Packages sorted by displayed name, the way people expect a list of names: locale-aware,
+ * ignoring case and accents ("éditions" next to "Editions"), package name as tie-breaker.
+ */
+internal fun sortedByName(packages: List<String>, label: (String) -> String): List<String> {
+    val collator = Collator.getInstance().apply { strength = Collator.PRIMARY }
+    return packages.sortedWith(compareBy<String, String>(collator) { label(it) }.thenBy { it })
+}
+
 /** Extra space after the last item of a scrolling list (round screens cut off the bottom). */
 internal val BottomSpace = 56.dp
 
@@ -124,7 +140,7 @@ private fun AppButton(
     onClick: (String) -> Unit,
     onLongClick: (String) -> Unit,
 ) {
-    val label = details?.label ?: KnownApps.labelFor(packageName)
+    val label = appLabel(packageName, details)
     Button(
         onClick = { onClick(packageName) },
         onLongClick = { onLongClick(packageName) },

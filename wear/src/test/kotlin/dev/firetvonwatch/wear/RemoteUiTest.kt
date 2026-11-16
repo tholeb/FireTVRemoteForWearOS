@@ -219,4 +219,58 @@ class RemoteUiTest {
         compose.onNodeWithContentDescription(context.getString(R.string.key_play_pause)).assertIsDisplayed()
         assertFalse(compose.activity.isFinishing)
     }
+
+    private fun keepsScreenOn() =
+        compose.activity.window.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON != 0
+
+    @Test fun remoteKeepsTheScreenOnOnlyWhileShowing() {
+        compose.setContent { FireTvTheme { FireTvApp(deps) } }
+        compose.onNodeWithTag("ok").assertIsDisplayed()
+        compose.waitForIdle()
+        assertTrue(keepsScreenOn())
+
+        compose.onNodeWithContentDescription(context.getString(R.string.open_touchpad)).performClick()
+        compose.onNodeWithTag("touchpad").assertIsDisplayed()
+        assertTrue("still on in the touchpad", keepsScreenOn())
+
+        pressBack()
+        swipeToNextPage()
+        compose.onNodeWithContentDescription(context.getString(R.string.open_settings)).performClick()
+        compose.onNodeWithText(context.getString(R.string.settings_volume_control)).assertIsDisplayed()
+        compose.waitForIdle()
+        assertFalse("settings use the normal timeout", keepsScreenOn())
+    }
+
+    @Test fun remoteDimsAfterTheWatchTimeoutAndTheWakingTouchPressesNothing() {
+        // Robolectric has no screen-timeout setting: the 15 s default applies.
+        compose.mainClock.autoAdvance = false
+        compose.setContent { FireTvTheme { FireTvApp(deps) } }
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.onNodeWithTag("ok").assertIsDisplayed()
+        compose.onNodeWithTag("dim").assertDoesNotExist()
+
+        compose.mainClock.advanceTimeBy(16_000)
+        compose.onNodeWithTag("dim").assertExists()
+
+        compose.onNodeWithTag("ok").performClick() // lands on the dim layer
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.onNodeWithTag("dim").assertDoesNotExist()
+        ShadowLooper.idleMainLooper()
+        assertTrue("the waking touch must not press OK", connection.sent.isEmpty())
+
+        compose.onNodeWithTag("ok").performClick() // now it's a real press
+        compose.mainClock.advanceTimeBy(500)
+        eventually { connection.sentKeys.isNotEmpty() }
+        assertEquals(listOf(RemoteKey.SELECT), connection.sentKeys)
+    }
+
+    @Test fun noDimmingAndNormalTimeoutWhenTheSettingIsOff() {
+        settingsRepo.state.value = RemoteSettings(keepScreenOn = false)
+        compose.mainClock.autoAdvance = false
+        compose.setContent { FireTvTheme { FireTvApp(deps) } }
+        compose.mainClock.advanceTimeBy(20_000)
+        compose.onNodeWithTag("ok").assertIsDisplayed()
+        compose.onNodeWithTag("dim").assertDoesNotExist()
+        assertFalse(keepsScreenOn())
+    }
 }
