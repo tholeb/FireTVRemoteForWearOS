@@ -77,7 +77,9 @@
     <string name="apps_none">No apps installed besides the system ones.</string>
 
     <!-- Touchpad -->
-    <string name="touchpad_hint">Swipe to move\nTap = OK · Hold = Back</string>
+    <string name="touchpad_hint">Swipe to move\nTap = OK</string>
+    <string name="touchpad_exit">Hold 3 s to exit</string>
+    <string name="touchpad_exit_label">Exit touchpad</string>
 
     <!-- Keyboard -->
     <string name="keyboard_title">Text</string>

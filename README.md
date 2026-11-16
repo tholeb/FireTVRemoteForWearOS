@@ -15,7 +15,7 @@
   <img src="docs/screenshots/apps.png" width="180" alt="Apps page with YouTube pinned as a favorite">
 </p>
 <p align="center">
-  <img src="docs/screenshots/touchpad.png" width="180" alt="Touchpad: swipe to move, tap for OK, hold for Back">
+  <img src="docs/screenshots/touchpad.png" width="180" alt="Touchpad with Back, Home and Menu buttons; the exit ring fills while holding ✕">
   <img src="docs/screenshots/keyboard.png" width="180" alt="Text input screen">
   <img src="docs/screenshots/settings.png" width="180" alt="Settings with an explanation under each option">
 </p>
@@ -69,7 +69,7 @@ Samsung Galaxy Watch on Wear OS 7; it runs on any watch with Wear OS 5 (API 34) 
 | Settings | Every setting has a short explanation under its name |
 | Wake TV | *Wake TV* (Settings) and **Wake TV on launch** (on by default): sends WAKEUP, checks with `dumpsys power`, and sends POWER only if the Fire TV is verifiably still asleep |
 | Screen | **Keep screen on in the remote** (on by default): while the remote or touchpad shows, the screen doesn't turn off. After the **watch's own screen timeout** it dims to **Dimmed brightness** (10-100 %, default 30 %) by darkening the picture, which saves power on the AMOLED screen and works on every watch. The first touch or bezel turn only brightens it again. After **5 minutes** without any touch, bezel or key, the screen is no longer held on and turns off as usual (the connection and Wi-Fi are then released). Other screens keep the normal timeout |
-| Touchpad mode | Swipe = direction, tap = OK, hold = Back. Open it from the bottom-right corner key |
+| Touchpad mode | Swipe = direction, tap = OK. Back, Home and Menu buttons along the bottom; the watch's own Back is sent to the TV. To leave, hold the ✕ at the top for 3 s (a ring fills while you hold). Open it from the bottom-right corner key |
 | Text input | Watch keyboard / voice → focused text field on the TV (ASCII only) |
 | Tile | Back, Play/Pause, Home sent straight from the tile; plus an "open remote" button |
 | Complication | Opens the remote from the watch face |
@@ -175,6 +175,135 @@ Signed release APKs are built by GitHub Actions; see
   <img src="docs/screenshots/tv-prompt.png" width="480" alt="Fire TV prompt 'Allow USB debugging?' showing the same fingerprint">
 </p>
 <p align="center"><sub>The fingerprint on the watch must match the one on the TV. Tick "Always allow", then Allow.</sub></p>
+
+## Architecture
+
+```
+:wear     Compose for Wear OS UI, ViewModels, Tile, complication, AppContainer (manual DI)
+:data     dadb transport, Keystore-wrapped ADB key, Wi-Fi network gate, NSD + subnet scan, DataStore
+:domain   Pure Kotlin: models, ShellCommandBuilder, ShellFireTvConnection, RemoteSession
+:testing  Fakes: FakeFireTvConnection, FakeShellTransport, FakeNetworkGate, in-memory repos
+```
+
+How a key press travels:
+
+```
+UI → RemoteViewModel → RemoteSession (queue, coalesce bursts, connect-on-demand, idle release, backoff)
+   → ShellFireTvConnection (probe, timeout, state machine) → DadbShellTransport → TCP 5555 → Fire TV
+```
+
+- **Connection.** One authenticated ADB connection is kept open while in use.
+- **Fast keys (on-TV injector).** After connecting, the watch pushes a ~4 KB helper
+  (`wear/src/injector/`, compiled to `injector.dex` by Gradle) to the TV and starts it with
+  `app_process` as the ADB shell user. Each key press is then one line on its stdin
+  (`K 19 19`), answered with `OK`: about **10–15 ms** instead of ~500 ms per `input keyevent`
+  on Android ≤ 11. It also answers `I <package>` with the app's label and icon (PNG, base64):
+  it reads the app's own resources from its APK, without needing a Context. Old versions of
+  the helper are deleted when a new one is pushed.
+  - **Where it lives:** a private directory, `/data/local/tmp/firetvonwatch` (mode 0700),
+    together with its ART cache (`ANDROID_DATA`).
+  - **Integrity:** the file is checked against its SHA-256 before every start and pushed
+    again if it differs. It's made read-only (0644).
+  - **Lifetime:** it exits when the connection closes.
+- **Fallback.** Until the injector is ready, or if it fails or stops answering (1.5 s), keys go
+  through a short-lived shell running `cmd input keyevent …` (`input` on old Fire OS). Text
+  and app launches always use this path. A burst of key presses goes out in **one** call.
+- **Wi-Fi.** `ConnectivityManager.requestNetwork(TRANSPORT_WIFI)` plus `bindProcessToNetwork`,
+  so traffic doesn't go through the phone's Bluetooth proxy. The request is released together
+  with the connection.
+- **Battery.** The connection and Wi-Fi request are dropped as soon as the app leaves the
+  foreground, or after the idle timeout (30 s to 5 min, default 60 s). They reconnect on the
+  next key press.
+- **Key security.** RSA-2048 ADB key. The private key is stored AES-256-GCM encrypted with a
+  non-exportable Android Keystore key, in `noBackupFilesDir`. Backups are turned off. *Settings
+  → Reset watch key* creates a new identity.
+
+| Library | Version | License | Why |
+|---|---|---|---|
+| dev.mobile:dadb | 2.0.0 | Apache-2.0 | Pure-JVM ADB client (no adb binary or server) |
+| androidx.wear.compose (material3, foundation, navigation) | 1.7.1 | Apache-2.0 | Round-screen UI |
+| androidx.navigation:navigation-compose | 2.10.2 | Apache-2.0 | Back-stack state for the Wear nav host |
+| androidx.wear.tiles / protolayout | 1.6.2 / 1.4.2 | Apache-2.0 | Tile |
+| androidx.wear.watchface complications-data-source-ktx | 1.3.0 | Apache-2.0 | Complication |
+| androidx.wear:wear-input | 1.2.0 | Apache-2.0 | System keyboard/voice input |
+| androidx.datastore:datastore-preferences | 1.3.0 | Apache-2.0 | Paired devices and settings |
+| kotlinx-coroutines | 1.11.0 | Apache-2.0 | Concurrency |
+| Test: JUnit 4, Robolectric 4.18, Compose UI test, Turbine, coroutines-test | – | EPL/MIT/Apache | Tests |
+
+Build: AGP 9.5.1, Kotlin 2.4.21, Gradle 9.9.1, compile/target SDK 37, min SDK 34.
+
+## Tests
+
+`./gradlew test` runs **95 tests**:
+
+- **domain (59):**
+  - Command building: key batching, text escaping including `%s`, quotes and shell
+    metacharacters, package validation.
+  - Probe parsing.
+  - Connection state machine: auth hint, refused, hang → timeout → close.
+  - Session: coalescing, idle release, background release, reconnect-and-resend, backoff,
+    no-retry on auth rejection, NO_WIFI, device switching.
+  - Discovery merging and codecs.
+  - Injector: pushed and used, not re-pushed when the hash matches, failed start → fallback,
+    hung injector → dropped and the key resent, stopped on disconnect, safe start command.
+- **data (11):**
+  - ADB public-key encoding is **byte-identical to dadb's AOSP-format output**.
+  - Key store persistence, encryption and regeneration.
+  - Refused vs unreachable mapping using a real closed socket.
+  - Subnet candidates.
+  - Legacy (pre-Android 7) shell: exit-code marker parsing, pty echo filtering.
+  - App label/icon disk cache.
+- **wear (24):**
+  - Screen: kept on only on the remote and touchpad; dims after the watch timeout; the waking touch presses nothing.
+  - Rotary step accumulation, gesture classification, tile actions.
+  - Robolectric Compose tests of the real screens against the fake Fire TV: OK sends
+    SELECT; labelled keys; swipe to the media page; refused error → guidance → retry;
+    touchpad swipe and tap; the whole UI in French; the connection-state node doesn't
+    cover the buttons (TalkBack regression); back goes to the previous page and never closes
+    the remote unless allowed; back leaves Settings; on the touchpad back goes to the TV,
+    its buttons send only their key, and only a 3 s hold on ✕ leaves it; the media page
+    without volume keys.
+
+### Emulator end-to-end run (2026-11-15)
+
+Setup: Wear OS 7 emulator (API 37) as the watch, Android TV 11 emulator (API 30, the
+Android version Fire OS 8 is based on, `ro.adb.secure=1`, TCP ADB mode) as the TV.
+
+| Step | Result |
+|---|---|
+| `ACCESS_LOCAL_NETWORK` runtime prompt (shown as "Nearby devices") | ✅ granted via the real system dialog |
+| App-level Wi-Fi `requestNetwork` + subnet scan | ✅ TV found; the watch's own address is now excluded |
+| ADB RSA handshake → "Allow USB debugging?" on TV | ✅ fingerprint on TV **matches** the watch's |
+| Prompt ignored/denied → watch shows "No answer from the TV" + Retry after 45 s | ✅ |
+| "Always allow" + Allow → watch shows "Connected!" | ✅ |
+| D-pad from the watch moves focus on the TV | ✅ |
+| Latency per command, before the injector | ❌ 507 ms: Android 11 has no `cmd input`, so each `input keyevent` starts a JVM |
+| **Latency per command, with the injector** | ✅ **10–14 ms** (Settings shows "fast input") |
+| Injector killed mid-session → next key falls back to `input` and still works | ✅ |
+| Injector stored in a 0700 directory, file 0644, hash-checked (not re-pushed when unchanged) | ✅ |
+| "Always allow" survives a reconnect | ⚠️ not on this emulator image: it saves the key but never writes it to `adb_keys`. A plain host-side dadb client shows the same thing, so it's the emulator, not the app. Check on a real Fire TV |
+| Manual IP entry via the system keyboard | ⚠️ couldn't be automated (the emulator IME ignores injected text); to verify by hand |
+
+## Manual test checklist (real watch + Fire TV)
+
+These can't be checked without hardware:
+
+- [ ] First connection: the TV prompt appears, the fingerprint matches, "Always allow" → Connected.
+- [ ] Latency: watch *Settings* should show "fast input" and *Last command: N ms*. Target < 150 ms. Report the values you see.
+- [ ] Reconnect after the idle timeout does **not** show the TV prompt again (after "Always allow").
+- [ ] Every key on pages 1 and 2 does the right thing. Volume/mute with your TV/soundbar over CEC.
+- [ ] Bezel: exactly one focus step per detent; clockwise = down / volume up (tell me if it should be reversed).
+- [ ] Touchpad: swipes in 4 directions, tap = OK; Back/Home/Menu buttons; only a 3 s hold on ✕ closes it.
+- [ ] Text: Fire TV search field ← "stranger things"; voice input; "Send + Enter".
+- [ ] Apps page lists your apps; launching Netflix / Prime Video / YouTube works.
+- [ ] Discovery finds the TV by mDNS (by name) and/or scan (as "ADB device").
+- [ ] With the phone connected over Bluetooth: the app still connects (Wi-Fi comes up on its own).
+- [ ] Turn TV Wi-Fi off and on, or reboot the TV → the app reconnects on the next press.
+- [ ] Leave the app 60 s → ring turns grey (disconnected); next press reconnects.
+- [ ] Tile: Play/Pause works without opening the app; complication opens the remote.
+- [ ] Sleep / Wake from Settings.
+- [ ] TalkBack reads every button.
+- [ ] Battery: 30 min of mixed use; note the % drop.
 
 ## Troubleshooting
 

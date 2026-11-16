@@ -72,7 +72,9 @@
     <string name="apps_none">Aucune appli installée à part celles du système.</string>
 
     <!-- Pavé tactile -->
-    <string name="touchpad_hint">Glissez pour vous déplacer\nAppui = OK · Appui long = Retour</string>
+    <string name="touchpad_hint">Glissez pour vous déplacer\nAppui = OK</string>
+    <string name="touchpad_exit">Maintenez 3 s pour quitter</string>
+    <string name="touchpad_exit_label">Quitter le pavé tactile</string>
 
     <!-- Clavier -->
     <string name="keyboard_title">Texte</string>
