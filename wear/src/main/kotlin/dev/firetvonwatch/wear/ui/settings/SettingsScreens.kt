@@ -53,10 +53,16 @@ private fun Note(text: String) {
     )
 }
 
-/** Short explanation under a setting's name. */
+/** Explanation under a setting's name. Never truncated: the button grows to fit it. */
 @Composable
 private fun Explanation(text: String) {
-    Text(text, style = MaterialTheme.typography.bodySmall, maxLines = 7)
+    Text(text, style = MaterialTheme.typography.bodySmall, maxLines = Int.MAX_VALUE)
+}
+
+/** A setting's name. Wraps instead of ending in an ellipsis. */
+@Composable
+private fun Label(text: String) {
+    Text(text, maxLines = Int.MAX_VALUE)
 }
 
 @Composable
@@ -66,7 +72,7 @@ private fun SettingSwitch(checked: Boolean, onChange: (Boolean) -> Unit, label: 
         onCheckedChange = onChange,
         modifier = Modifier.fillMaxWidth(),
         secondaryLabel = { Explanation(stringResource(explanation)) },
-        label = { Text(stringResource(label), maxLines = 2) },
+        label = { Label(stringResource(label)) },
     )
 }
 
@@ -89,7 +95,7 @@ fun SettingsScreen(vm: RemoteViewModel, ui: RemoteUiState, onDevices: () -> Unit
                     secondaryLabel = {
                         Explanation(listOfNotNull(ui.activeDevice?.address, stringResource(R.string.settings_device_desc)).joinToString("\n"))
                     },
-                    label = { Text(ui.activeDevice?.name ?: stringResource(R.string.settings_no_device), maxLines = 1) },
+                    label = { Text(ui.activeDevice?.name ?: stringResource(R.string.settings_no_device), maxLines = 2) },
                 )
             }
             (ui.connection as? ConnectionState.Connected)?.info?.let { info ->
@@ -181,7 +187,7 @@ fun SettingsScreen(vm: RemoteViewModel, ui: RemoteUiState, onDevices: () -> Unit
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.filledTonalButtonColors(),
                     secondaryLabel = { Explanation(stringResource(R.string.settings_idle_desc)) },
-                    label = { Text(stringResource(R.string.settings_idle_label, settings.idleTimeoutSeconds), maxLines = 2) },
+                    label = { Label(stringResource(R.string.settings_idle_label, settings.idleTimeoutSeconds)) },
                 )
             }
             item {
@@ -191,7 +197,7 @@ fun SettingsScreen(vm: RemoteViewModel, ui: RemoteUiState, onDevices: () -> Unit
                     colors = ButtonDefaults.filledTonalButtonColors(),
                     icon = { Icon(painterResource(R.drawable.ic_power), contentDescription = null) },
                     secondaryLabel = { Explanation(stringResource(R.string.settings_sleep_desc)) },
-                    label = { Text(stringResource(R.string.settings_sleep)) },
+                    label = { Label(stringResource(R.string.settings_sleep)) },
                 )
             }
             item {
@@ -201,7 +207,7 @@ fun SettingsScreen(vm: RemoteViewModel, ui: RemoteUiState, onDevices: () -> Unit
                     colors = ButtonDefaults.filledTonalButtonColors(),
                     icon = { Icon(painterResource(R.drawable.ic_power), contentDescription = null) },
                     secondaryLabel = { Explanation(stringResource(R.string.settings_wake_desc)) },
-                    label = { Text(stringResource(R.string.settings_wake)) },
+                    label = { Label(stringResource(R.string.settings_wake)) },
                 )
             }
             item {
@@ -217,7 +223,7 @@ fun SettingsScreen(vm: RemoteViewModel, ui: RemoteUiState, onDevices: () -> Unit
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.filledVariantButtonColors(),
                     secondaryLabel = { Explanation(stringResource(R.string.settings_reset_key_desc)) },
-                    label = { Text(stringResource(R.string.settings_reset_key)) },
+                    label = { Label(stringResource(R.string.settings_reset_key)) },
                 )
             }
             // Room below the last item so it can scroll clear of the round screen's bottom edge.

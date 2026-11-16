@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import dev.firetvonwatch.domain.model.RemoteSettings
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -30,6 +31,7 @@ import dev.firetvonwatch.testing.InMemoryDeviceRepository
 import dev.firetvonwatch.testing.InMemorySettingsRepository
 import dev.firetvonwatch.wear.ui.FireTvApp
 import dev.firetvonwatch.wear.ui.RemoteViewModel
+import dev.firetvonwatch.wear.ui.remote.TOUCHPAD_EXIT_HOLD_MS
 import dev.firetvonwatch.wear.ui.remote.TouchpadScreen
 import dev.firetvonwatch.wear.ui.theme.FireTvTheme
 import kotlinx.coroutines.CoroutineScope
@@ -202,13 +204,53 @@ class RemoteUiTest {
         waitForKeys(RemoteKey.PLAY_PAUSE)
     }
 
-    @Test fun backOnTheTouchpadReturnsToTheRemote() {
+    private fun openTouchpad() {
         compose.setContent { FireTvTheme { FireTvApp(deps) } }
         compose.onNodeWithContentDescription(context.getString(R.string.open_touchpad)).performClick()
         compose.onNodeWithTag("touchpad").assertIsDisplayed()
+    }
+
+    @Test fun backOnTheTouchpadIsSentToTheTv() {
+        openTouchpad()
         pressBack()
-        compose.onNodeWithTag("ok").assertIsDisplayed()
+        waitForKeys(RemoteKey.BACK)
+        compose.onNodeWithTag("touchpad").assertIsDisplayed()
         assertFalse(compose.activity.isFinishing)
+    }
+
+    @Test fun touchpadButtonsSendOnlyTheirKey() {
+        openTouchpad()
+        compose.onNodeWithContentDescription(context.getString(R.string.key_back)).performClick()
+        eventually { connection.sentKeys.size >= 1 }
+        compose.onNodeWithContentDescription(context.getString(R.string.key_home)).performClick()
+        eventually { connection.sentKeys.size >= 2 }
+        compose.onNodeWithContentDescription(context.getString(R.string.key_menu)).performClick()
+        waitForKeys(RemoteKey.BACK, RemoteKey.HOME, RemoteKey.MENU)
+    }
+
+    @Test fun leavingTheTouchpadTakesAThreeSecondHold() {
+        openTouchpad()
+        val exit = compose.onNodeWithTag("touchpad_exit")
+        // A short hold (and a tap) does nothing: no exit, no key sent.
+        exit.performTouchInput { down(center); advanceEventTime(1_500); up() }
+        compose.mainClock.advanceTimeBy(2_000)
+        exit.performClick()
+        compose.mainClock.advanceTimeBy(4_000)
+        compose.onNodeWithTag("touchpad").assertIsDisplayed()
+        assertTrue(connection.sentKeys.isEmpty())
+
+        holdToExitTouchpad()
+        compose.onNodeWithTag("ok").assertIsDisplayed()
+        assertTrue(connection.sentKeys.isEmpty())
+    }
+
+    private fun holdToExitTouchpad() {
+        compose.mainClock.autoAdvance = false
+        compose.onNodeWithTag("touchpad_exit").performTouchInput { down(center) }
+        compose.mainClock.advanceTimeBy(TOUCHPAD_EXIT_HOLD_MS + 500L)
+        compose.mainClock.autoAdvance = true
+        compose.onRoot().performTouchInput { up() } // the button is gone by now: lift the finger anywhere
+        compose.waitForIdle()
     }
 
     @Test fun settingsOpenAndBackReturnsToTheMediaPage() {
@@ -234,7 +276,7 @@ class RemoteUiTest {
         compose.onNodeWithTag("touchpad").assertIsDisplayed()
         assertTrue("still on in the touchpad", keepsScreenOn())
 
-        pressBack()
+        holdToExitTouchpad()
         swipeToNextPage()
         compose.onNodeWithContentDescription(context.getString(R.string.open_settings)).performClick()
         compose.onNodeWithText(context.getString(R.string.settings_volume_control)).assertIsDisplayed()

@@ -10,7 +10,7 @@ phone app, a cloud service or any telemetry.
   <img src="docs/screenshots/apps.png" width="180" alt="Apps page with YouTube pinned as a favorite">
 </p>
 <p align="center">
-  <img src="docs/screenshots/touchpad.png" width="180" alt="Touchpad: swipe to move, tap for OK, hold for Back">
+  <img src="docs/screenshots/touchpad.png" width="180" alt="Touchpad with Back, Home and Menu buttons; the exit ring fills while holding ✕">
   <img src="docs/screenshots/keyboard.png" width="180" alt="Text input screen">
   <img src="docs/screenshots/settings.png" width="180" alt="Settings with an explanation under each option">
   <img src="docs/screenshots/media-novolume.png" width="180" alt="Media page with volume buttons turned off">
@@ -28,7 +28,7 @@ phone app, a cloud service or any telemetry.
 | Settings | Every setting has a short explanation under its name |
 | Wake TV | *Wake TV* (Settings) and **Wake TV on launch** (on by default): sends WAKEUP, checks with `dumpsys power`, and sends POWER only if the Fire TV is verifiably still asleep |
 | Screen | **Keep screen on in the remote** (on by default): while the remote or touchpad shows, the screen doesn't turn off. After the **watch's own screen timeout** it dims to **Dimmed brightness** (10-100 %, default 30 %) by darkening the picture, which saves power on the AMOLED screen and works on every watch. The first touch or bezel turn only brightens it again. After **5 minutes** without any touch, bezel or key, the screen is no longer held on and turns off as usual (the connection and Wi-Fi are then released). Other screens keep the normal timeout |
-| Touchpad mode | Swipe = direction, tap = OK, hold = Back. Open it from the bottom-right corner key |
+| Touchpad mode | Swipe = direction, tap = OK. Back, Home and Menu buttons along the bottom; the watch's own Back is sent to the TV. To leave, hold the ✕ at the top for 3 s (a ring fills while you hold). Open it from the bottom-right corner key |
 | Text input | Watch keyboard / voice → focused text field on the TV (ASCII only) |
 | Tile | Back, Play/Pause, Home sent straight from the tile; plus an "open remote" button |
 | Complication | Opens the remote from the watch face |
@@ -197,7 +197,8 @@ Build: AGP 9.5.1, Kotlin 2.4.21, Gradle 9.9.1, compile/target SDK 37, min SDK 34
     SELECT; labelled keys; swipe to the media page; refused error → guidance → retry;
     touchpad swipe and tap; the whole UI in French; the connection-state node doesn't
     cover the buttons (TalkBack regression); back goes to the previous page and never closes
-    the remote unless allowed; back leaves the touchpad and Settings; the media page
+    the remote unless allowed; back leaves Settings; on the touchpad back goes to the TV,
+    its buttons send only their key, and only a 3 s hold on ✕ leaves it; the media page
     without volume keys.
 
 ### Emulator end-to-end run (2026-11-15)
@@ -229,7 +230,7 @@ These can't be checked without hardware:
 - [ ] Reconnect after the idle timeout does **not** show the TV prompt again (after "Always allow").
 - [ ] Every key on pages 1 and 2 does the right thing. Volume/mute with your TV/soundbar over CEC.
 - [ ] Bezel: exactly one focus step per detent; clockwise = down / volume up (tell me if it should be reversed).
-- [ ] Touchpad: swipes in 4 directions, tap = OK, hold = Back; doesn't close the screen by accident.
+- [ ] Touchpad: swipes in 4 directions, tap = OK; Back/Home/Menu buttons; only a 3 s hold on ✕ closes it.
 - [ ] Text: Fire TV search field ← "stranger things"; voice input; "Send + Enter".
 - [ ] Apps page lists your apps; launching Netflix / Prime Video / YouTube works.
 - [ ] Discovery finds the TV by mDNS (by name) and/or scan (as "ADB device").

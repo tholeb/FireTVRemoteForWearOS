@@ -41,9 +41,8 @@ class InputLogicTest {
     }
 
     @Test fun `gestures classify into keys`() {
-        fun c(dx: Float, dy: Float, ms: Long = 150) = GestureClassifier.classify(dx, dy, ms, tapSlopPx = 20f, minSwipePx = 60f)
+        fun c(dx: Float, dy: Float) = GestureClassifier.classify(dx, dy, tapSlopPx = 20f, minSwipePx = 60f)
         assertEquals(RemoteKey.SELECT, c(3f, 4f))
-        assertEquals(RemoteKey.BACK, c(3f, 4f, ms = 700))
         assertEquals(RemoteKey.DPAD_RIGHT, c(120f, 30f))
         assertEquals(RemoteKey.DPAD_LEFT, c(-120f, 30f))
         assertEquals(RemoteKey.DPAD_UP, c(10f, -90f))
